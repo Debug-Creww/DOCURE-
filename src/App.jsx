@@ -726,14 +726,7 @@ export default function App() {
               <img src="assets/logo_original.png?v=5" alt="DOCURE Logo" className="h-10 w-auto mix-blend-multiply" />
               <h2 className="font-mono text-xl font-bold tracking-tight text-brand-accent">DOCURE</h2>
             </div>
-            
-            <nav className="hidden md:flex items-center gap-8 relative py-2">
-              <a href="#" className="text-xs font-semibold text-brand-textMuted hover:text-brand-textDark transition-all px-1">Overview</a>
-              <a href="#" className="text-xs font-semibold text-brand-textMuted hover:text-brand-textDark transition-all px-1">Triage Checker</a>
-              <a href="#" className="text-xs font-semibold text-brand-textMuted hover:text-brand-textDark transition-all px-1">Biomarkers</a>
-              <a href="#" className="text-xs font-semibold text-brand-textMuted hover:text-brand-textDark transition-all px-1">Local Maps</a>
-              <a href="#" className="text-xs font-semibold text-brand-textMuted hover:text-brand-textDark transition-all px-1">Emergency SOS</a>
-            </nav>
+
 
             <button 
               className="bg-brand-textDark text-white px-5 py-2.5 text-xs font-bold rounded-xl shadow-md hover:bg-brand-accent active:scale-95 transition-all"
