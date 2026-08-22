@@ -718,7 +718,7 @@ export default function App() {
              ========================================== */}
         <section className="w-full h-screen flex flex-col justify-between p-6 select-none relative z-10">
           {/* Navigation Header with Glassmorphism Bar */}
-          <header className="flex justify-between items-center px-8 py-4 mx-2 my-2 bg-[#0f766e]/5 backdrop-blur-md border border-[#0f766e]/15 rounded-2xl shadow-[0_4px_30px_rgba(0,0,0,0.03),_0_0_15px_rgba(15,118,110,0.05)] relative z-20">
+          <header className="flex justify-between items-center px-8 py-4 mx-auto my-3 w-full max-w-[94%] bg-[#0f766e]/5 backdrop-blur-md border border-[#0f766e]/15 rounded-2xl shadow-[0_4px_30px_rgba(0,0,0,0.03),_0_0_15px_rgba(15,118,110,0.05)] relative z-20">
             {/* Brand Logo and Name - slightly inset because of padding */}
             <div 
               className="flex items-center gap-3 cursor-pointer hover:opacity-90 active:scale-95 transition-all"
