@@ -2,8 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   ArrowLeft, Activity, LineChart, BarChart3, ClipboardList, 
   Settings, UserCog, User, MapPin, X, Bot, Bell, 
-  Phone, Trash2, Send, Mic, Volume2, VolumeX, ShieldAlert 
+  Phone, Trash2, Send, Mic, Volume2, VolumeX, ShieldAlert,
+  Pill
 } from 'lucide-react';
+import MedicineReminder from './components/MedicineReminder/MedicineReminder';
+import InAppToast from './components/MedicineReminder/InAppToast';
+import { startNotificationScheduler } from './services/notificationScheduler';
+import { getDefaultUserId } from './firebase';
+import { subscribeReminders, addReminder, deleteReminder } from './services/firestoreReminders';
 
 // Maps coordinates
 const CityCoordinates = {
@@ -93,6 +99,20 @@ export default function App() {
   // Page routing
   const [activePage, setActivePage] = useState('landing');
   const [activeTab, setActiveTab] = useState('reduce');
+  const [currentUserId, setCurrentUserId] = useState(getDefaultUserId());
+  const [liveReminders, setLiveReminders] = useState([]);
+
+  // Initialize background notification scheduler & subscribe to live Firestore reminders
+  useEffect(() => {
+    const teardownScheduler = startNotificationScheduler([]);
+    const unsubscribeReminders = subscribeReminders(currentUserId, (data) => {
+      setLiveReminders(data);
+    });
+    return () => {
+      teardownScheduler();
+      unsubscribeReminders();
+    };
+  }, [currentUserId]);
   
   // Profile settings state
   const [profileModalOpen, setProfileModalOpen] = useState(false);
@@ -109,7 +129,7 @@ export default function App() {
   // Dynamic tags managers
   const [allergies, setAllergies] = useState(["Penicillin"]);
   const [conditions, setConditions] = useState(["Mild Asthma"]);
-  const [medications, setMedications] = useState(["Albuterol inhaler (as needed)"]);
+  const [medications, setMedications] = useState([]);
 
   // Tags input temporary strings
   const [newAllergy, setNewAllergy] = useState("");
@@ -117,9 +137,7 @@ export default function App() {
   const [newMedication, setNewMedication] = useState("");
 
   // Prescriptions list
-  const [prescriptions, setPrescriptions] = useState([
-    { id: 1, name: "Paracetamol (500mg)", time: "08:00 AM • Every 8h" }
-  ]);
+  const [prescriptions, setPrescriptions] = useState([]);
   const [newPrescName, setNewPrescName] = useState("");
   const [newPrescTime, setNewPrescTime] = useState("");
   const [prescFormOpen, setPrescFormOpen] = useState(false);
@@ -695,16 +713,23 @@ export default function App() {
   };
 
   // Prescriptions managers
-  const handleAddPrescription = () => {
+  const handleAddPrescription = async () => {
     if (!newPrescName.trim() || !newPrescTime.trim()) return;
-    setPrescriptions([...prescriptions, {
-      id: Date.now(),
-      name: newPrescName.trim(),
-      time: newPrescTime.trim()
-    }]);
-    setNewPrescName("");
-    setNewPrescTime("");
-    setPrescFormOpen(false);
+    try {
+      await addReminder(currentUserId, {
+        medicineName: newPrescName.trim(),
+        dosage: '1 Dose',
+        daysOfWeek: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+        doseTimes: [newPrescTime.trim()],
+        syncGoogleCalendar: false,
+        notes: ''
+      });
+      setNewPrescName("");
+      setNewPrescTime("");
+      setPrescFormOpen(false);
+    } catch (e) {
+      console.error('Error adding prescription:', e);
+    }
   };
 
   // Save Modal Profile details
@@ -929,6 +954,13 @@ export default function App() {
                 <ClipboardList className="w-5 h-5 mb-1" />
                 <span>Report</span>
               </button>
+              <button 
+                className={`sidebar-item flex flex-col items-center justify-center py-3 text-[10px] w-[70px] mx-auto rounded-2xl relative transition-all duration-300 ${activeTab === 'reminders' ? 'bg-white text-[#0f766e] font-bold shadow-lg shadow-black/10' : 'text-white/70 hover:text-white hover:bg-white/5'}`}
+                onClick={() => setActiveTab('reminders')}
+              >
+                <Pill className="w-5 h-5 mb-1" />
+                <span>Meds</span>
+              </button>
             </div>
             
             {/* Bottom Actions */}
@@ -982,21 +1014,30 @@ export default function App() {
                 <h4 className="text-[11px] font-mono font-bold tracking-wider uppercase">Active Prescriptions</h4>
               </div>
               
-              <div className="flex flex-col gap-2 max-h-32 overflow-y-auto">
-                {prescriptions.map(med => (
-                  <div key={med.id} className="bg-brand-sand border border-brand-border rounded-lg p-2.5 flex justify-between items-center">
-                    <div className="flex flex-col text-xs">
-                      <span className="font-bold text-brand-textDark">{med.name}</span>
-                      <span className="text-[10px] text-brand-textMuted">{med.time}</span>
+              <div className="flex flex-col gap-2 max-h-36 overflow-y-auto">
+                {liveReminders.length === 0 ? (
+                  <p className="text-[11px] text-slate-400 italic py-1 text-center">No prescriptions scheduled yet.</p>
+                ) : (
+                  liveReminders.map(med => (
+                    <div key={med.id} className="bg-brand-sand border border-brand-border rounded-lg p-2 flex justify-between items-center">
+                      <div className="flex flex-col text-xs">
+                        <span className="font-bold text-brand-textDark flex items-center gap-1">
+                          <span>{med.medIcon || '💊'}</span> {med.medicineName}
+                        </span>
+                        <span className="text-[10px] text-brand-textMuted">
+                          {med.dosage} • {Array.isArray(med.doseTimes) ? med.doseTimes.join(', ') : med.time || ''}
+                        </span>
+                      </div>
+                      <button 
+                        className="text-brand-textMuted hover:text-brand-rose font-bold text-base px-1.5 hover:bg-black/5 rounded"
+                        onClick={() => deleteReminder(med.id, currentUserId, med)}
+                        title="Delete prescription"
+                      >
+                        ×
+                      </button>
                     </div>
-                    <button 
-                      className="text-brand-textMuted hover:text-brand-rose font-bold text-base px-1"
-                      onClick={() => setPrescriptions(prescriptions.filter(p => p.id !== med.id))}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
 
               <div className="flex flex-col gap-2 mt-1">
@@ -1039,6 +1080,14 @@ export default function App() {
                     </div>
                   </div>
                 )}
+                
+                <button
+                  onClick={() => setActiveTab('reminders')}
+                  className="w-full py-1.5 bg-brand-accent/10 hover:bg-brand-accent/20 border border-brand-accent/30 text-brand-accent text-[10px] font-bold rounded-lg flex items-center justify-center gap-1 transition-all"
+                >
+                  <Pill className="w-3 h-3" />
+                  <span>Full Medication Schedules →</span>
+                </button>
               </div>
             </div>
 
@@ -1053,155 +1102,162 @@ export default function App() {
             </div>
           </aside>
 
-          {/* Center Chat Panel */}
-          <main className="flex-1 flex flex-col bg-white relative border-r border-brand-border">
-            <header className="h-[70px] bg-brand-sand border-b border-brand-border flex justify-between items-center px-6 shrink-0 select-none">
-              <div className="flex items-center gap-3">
-                <div className="w-2.5 h-2.5 bg-brand-glowingGreen rounded-full shadow-[0_0_10px_#10b981] pulse-active"></div>
-                <div>
-                  <h3 class="text-sm font-semibold">Triage Desk Diagnostic Assistant</h3>
-                  <p class="text-[10px] text-brand-textMuted">Triage state parsing engine connected</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                <button 
-                  className="bg-brand-accent/10 hover:bg-brand-accent/20 border border-brand-accent/20 text-brand-accent text-xs font-semibold px-3 py-1.5 rounded-full transition-all flex items-center gap-1"
-                  onClick={() => setIsVoiceEnabled(!isVoiceEnabled)}
-                >
-                  {isVoiceEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
-                  <span>Voice {isVoiceEnabled ? "ON" : "OFF"}</span>
-                </button>
-              </div>
-            </header>
-
-            {/* Message History logs */}
-            <div className="flex-1 p-6 overflow-y-auto flex flex-col gap-4" id="chat-messages">
-              {chat.map((msg, idx) => (
-                <div 
-                  key={idx} 
-                  className={`flex gap-3 max-w-[85%] items-start ${msg.sender === 'docure' ? 'self-start message docure' : 'self-end flex-row-reverse message user'}`}
-                >
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-mono font-bold text-xs ${msg.sender === 'docure' ? 'bg-brand-accent/10 border border-brand-accent/20 text-brand-accent' : 'bg-brand-accent/15 border border-brand-accent/30 text-brand-accent'}`}>
-                    {msg.sender === 'docure' ? <Bot className="w-4 h-4" /> : <User className="w-4 h-4" />}
-                  </div>
-                  <div 
-                    className={`text-sm leading-relaxed p-4 rounded-xl shadow-sm bubble ${msg.sender === 'docure' ? 'bg-brand-sand border border-brand-border text-brand-textDark rounded-tl-sm' : 'bg-brand-accent text-white rounded-tr-sm'}`}
-                    dangerouslySetInnerHTML={{ 
-                      __html: msg.text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                                      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                                      .replace(/\n/g, '<br>') 
-                    }}
-                  />
-                </div>
-              ))}
-              
-              {isTyping && (
-                <div className="flex gap-3 max-w-[85%] self-start items-start message docure">
-                  <div className="w-8 h-8 rounded-lg bg-brand-accent/10 border border-brand-accent/20 flex items-center justify-center text-brand-accent shrink-0">
-                    <Bot className="w-4 h-4" />
-                  </div>
-                  <div className="bg-brand-sand border border-brand-border text-brand-textDark text-sm leading-relaxed p-4 rounded-xl rounded-tl-sm bubble shadow-sm">
-                    <div className="flex gap-1.5 py-1">
-                      <div className="w-1.5 h-1.5 rounded-full bg-brand-textMuted animate-bounce [animation-delay:-0.3s]"></div>
-                      <div className="w-1.5 h-1.5 rounded-full bg-brand-textMuted animate-bounce [animation-delay:-0.15s]"></div>
-                      <div className="w-1.5 h-1.5 rounded-full bg-brand-textMuted animate-bounce"></div>
+          {/* Main Area: Render MedicineReminder if activeTab === 'reminders', otherwise Triage Desk & Map */}
+          {activeTab === 'reminders' ? (
+            <MedicineReminder userId={currentUserId} />
+          ) : (
+            <>
+              {/* Center Chat Panel */}
+              <main className="flex-1 flex flex-col bg-white relative border-r border-brand-border">
+                <header className="h-[70px] bg-brand-sand border-b border-brand-border flex justify-between items-center px-6 shrink-0 select-none">
+                  <div className="flex items-center gap-3">
+                    <div className="w-2.5 h-2.5 bg-brand-glowingGreen rounded-full shadow-[0_0_10px_#10b981] pulse-active"></div>
+                    <div>
+                      <h3 className="text-sm font-semibold">Triage Desk Diagnostic Assistant</h3>
+                      <p className="text-[10px] text-brand-textMuted">Triage state parsing engine connected</p>
                     </div>
                   </div>
+                  
+                  <div className="flex items-center gap-3">
+                    <button 
+                      className="bg-brand-accent/10 hover:bg-brand-accent/20 border border-brand-accent/20 text-brand-accent text-xs font-semibold px-3 py-1.5 rounded-full transition-all flex items-center gap-1"
+                      onClick={() => setIsVoiceEnabled(!isVoiceEnabled)}
+                    >
+                      {isVoiceEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
+                      <span>Voice {isVoiceEnabled ? "ON" : "OFF"}</span>
+                    </button>
+                  </div>
+                </header>
+
+                {/* Message History logs */}
+                <div className="flex-1 p-6 overflow-y-auto flex flex-col gap-4" id="chat-messages">
+                  {chat.map((msg, idx) => (
+                    <div 
+                      key={idx} 
+                      className={`flex gap-3 max-w-[85%] items-start ${msg.sender === 'docure' ? 'self-start message docure' : 'self-end flex-row-reverse message user'}`}
+                    >
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-mono font-bold text-xs ${msg.sender === 'docure' ? 'bg-brand-accent/10 border border-brand-accent/20 text-brand-accent' : 'bg-brand-accent/15 border border-brand-accent/30 text-brand-accent'}`}>
+                        {msg.sender === 'docure' ? <Bot className="w-4 h-4" /> : <User className="w-4 h-4" />}
+                      </div>
+                      <div 
+                        className={`text-sm leading-relaxed p-4 rounded-xl shadow-sm bubble ${msg.sender === 'docure' ? 'bg-brand-sand border border-brand-border text-brand-textDark rounded-tl-sm' : 'bg-brand-accent text-white rounded-tr-sm'}`}
+                        dangerouslySetInnerHTML={{ 
+                          __html: msg.text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                                          .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                                          .replace(/\n/g, '<br>') 
+                        }}
+                      />
+                    </div>
+                  ))}
+                  
+                  {isTyping && (
+                    <div className="flex gap-3 max-w-[85%] self-start items-start message docure">
+                      <div className="w-8 h-8 rounded-lg bg-brand-accent/10 border border-brand-accent/20 flex items-center justify-center text-brand-accent shrink-0">
+                        <Bot className="w-4 h-4" />
+                      </div>
+                      <div className="bg-brand-sand border border-brand-border text-brand-textDark text-sm leading-relaxed p-4 rounded-xl rounded-tl-sm bubble shadow-sm">
+                        <div className="flex gap-1.5 py-1">
+                          <div className="w-1.5 h-1.5 rounded-full bg-brand-textMuted animate-bounce [animation-delay:-0.3s]"></div>
+                          <div className="w-1.5 h-1.5 rounded-full bg-brand-textMuted animate-bounce [animation-delay:-0.15s]"></div>
+                          <div className="w-1.5 h-1.5 rounded-full bg-brand-textMuted animate-bounce"></div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            {/* Input area */}
-            <div className="border-t border-brand-border p-5 bg-brand-sand flex flex-col gap-3 shrink-0">
-              <div className="flex flex-wrap gap-2 items-center">
-                <span className="text-[10px] text-brand-textMuted font-mono uppercase tracking-wider mr-1">{symptomOptions.title}</span>
-                {symptomOptions.items.map((opt, i) => (
-                  <button 
-                    key={i}
-                    onClick={() => handleSendMessage(opt.full)}
-                    className={`text-[11px] px-3 py-1.5 rounded-full chip transition-all ${opt.label.includes("⚠️") ? 'bg-brand-rose/5 border border-brand-rose/30 hover:bg-brand-rose/15 text-brand-rose font-semibold' : 'bg-white border border-brand-border hover:border-brand-borderHover text-brand-textMuted hover:text-brand-textDark'}`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-              
-              <div className="flex gap-3 relative items-center">
-                {/* File upload button */}
-                <label className="w-10 h-10 rounded-xl bg-white border border-brand-border flex items-center justify-center text-brand-textMuted hover:text-brand-textDark cursor-pointer hover:border-brand-borderHover active:scale-95 transition-all">
-                  <ClipboardList className="w-4.5 h-4.5" />
-                  <input type="file" className="hidden" accept=".txt,.pdf,.jpg,.png" onChange={handleFileUpload} />
-                </label>
-
-                {/* Text input */}
-                <input 
-                  type="text"
-                  placeholder="Describe your symptoms or ask clinical helper..."
-                  value={chatInput}
-                  onChange={e => setChatInput(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') handleSendMessage(); }}
-                  className="flex-1 bg-white border border-brand-border rounded-xl px-4 py-2.5 outline-none text-xs focus:border-brand-accent pr-12 text-brand-textDark placeholder-brand-textMuted/60"
-                />
-
-                {/* Speak Mic button */}
-                <button 
-                  className={`absolute right-16 w-8 h-8 rounded-lg flex items-center justify-center transition-all ${isListening ? 'text-brand-rose animate-pulse' : 'text-brand-textMuted hover:text-brand-textDark'}`}
-                  onClick={toggleSpeechInput}
-                >
-                  <Mic className="w-4 h-4" />
-                </button>
-
-                {/* Send Button */}
-                <button 
-                  className="w-10 h-10 rounded-xl bg-brand-textDark hover:bg-brand-accent text-white flex items-center justify-center active:scale-95 transition-all shadow-md"
-                  onClick={() => handleSendMessage()}
-                >
-                  <Send className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          </main>
-
-          {/* Right Map Panel */}
-          <aside className="w-[360px] bg-brand-sand border-l border-brand-border flex flex-col shrink-0">
-            <div className="h-[70px] border-b border-brand-border flex items-center gap-2 px-5">
-              <MapPin className="w-4.5 h-4.5 text-brand-accent" />
-              <h3 className="text-sm font-semibold">Verified Maps Finder</h3>
-            </div>
-            
-            {/* Map container */}
-            <div className="h-64 border-b border-brand-border relative">
-              <div ref={mapRef} className="w-full h-full bg-slate-200"></div>
-            </div>
-            
-            {/* Specialist listings */}
-            <div className="flex-1 flex flex-col p-5 overflow-y-auto">
-              <div className="flex justify-between items-center mb-4 select-none">
-                <h4 className="text-[10px] font-mono tracking-widest text-brand-textMuted uppercase font-bold">Specialists Near You</h4>
-                <span className="text-[9px] font-mono text-brand-accent bg-brand-accent/10 border border-brand-accent/20 px-2 py-0.5 rounded-full uppercase">
-                  {profile.city.split(',')[0]}
-                </span>
-              </div>
-              
-              <div className="flex flex-col gap-2.5">
-                {matchedProfile.doctors.map((doc, i) => (
-                  <div key={i} className="bg-white border border-brand-border rounded-xl p-3 hover:border-brand-borderHover transition-all cursor-pointer">
-                    <div className="font-bold text-xs text-brand-accent mb-0.5">👨‍⚕️ {doc.name}</div>
-                    <div className="text-[11px] text-brand-textMuted">{doc.specialty} • {doc.phone}</div>
-                    <div className="text-[10px] text-brand-textMuted/60 mt-1">{doc.address}</div>
+                {/* Input area */}
+                <div className="border-t border-brand-border p-5 bg-brand-sand flex flex-col gap-3 shrink-0">
+                  <div className="flex flex-wrap gap-2 items-center">
+                    <span className="text-[10px] text-brand-textMuted font-mono uppercase tracking-wider mr-1">{symptomOptions.title}</span>
+                    {symptomOptions.items.map((opt, i) => (
+                      <button 
+                        key={i}
+                        onClick={() => handleSendMessage(opt.full)}
+                        className={`text-[11px] px-3 py-1.5 rounded-full chip transition-all ${opt.label.includes("⚠️") ? 'bg-brand-rose/5 border border-brand-rose/30 hover:bg-brand-rose/15 text-brand-rose font-semibold' : 'bg-white border border-brand-border hover:border-brand-borderHover text-brand-textMuted hover:text-brand-textDark'}`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
                   </div>
-                ))}
-                {matchedProfile.labs.map((lab, i) => (
-                  <div key={i} className="bg-white border border-brand-border rounded-xl p-3 hover:border-brand-borderHover transition-all cursor-pointer">
-                    <div className="font-bold text-xs text-purple-700 mb-0.5">🔬 {lab.name}</div>
-                    <div className="text-[11px] text-brand-textMuted">Diagnostic Labs • {lab.phone}</div>
-                    <div className="text-[10px] text-brand-textMuted/60 mt-1">{lab.address}</div>
+                  
+                  <div className="flex gap-3 relative items-center">
+                    {/* File upload button */}
+                    <label className="w-10 h-10 rounded-xl bg-white border border-brand-border flex items-center justify-center text-brand-textMuted hover:text-brand-textDark cursor-pointer hover:border-brand-borderHover active:scale-95 transition-all">
+                      <ClipboardList className="w-4.5 h-4.5" />
+                      <input type="file" className="hidden" accept=".txt,.pdf,.jpg,.png" onChange={handleFileUpload} />
+                    </label>
+
+                    {/* Text input */}
+                    <input 
+                      type="text"
+                      placeholder="Describe your symptoms or ask clinical helper..."
+                      value={chatInput}
+                      onChange={e => setChatInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') handleSendMessage(); }}
+                      className="flex-1 bg-white border border-brand-border rounded-xl px-4 py-2.5 outline-none text-xs focus:border-brand-accent pr-12 text-brand-textDark placeholder-brand-textMuted/60"
+                    />
+
+                    {/* Speak Mic button */}
+                    <button 
+                      className={`absolute right-16 w-8 h-8 rounded-lg flex items-center justify-center transition-all ${isListening ? 'text-brand-rose animate-pulse' : 'text-brand-textMuted hover:text-brand-textDark'}`}
+                      onClick={toggleSpeechInput}
+                    >
+                      <Mic className="w-4 h-4" />
+                    </button>
+
+                    {/* Send Button */}
+                    <button 
+                      className="w-10 h-10 rounded-xl bg-brand-textDark hover:bg-brand-accent text-white flex items-center justify-center active:scale-95 transition-all shadow-md"
+                      onClick={() => handleSendMessage()}
+                    >
+                      <Send className="w-4 h-4" />
+                    </button>
                   </div>
-                ))}
-              </div>
-            </div>
-          </aside>
+                </div>
+              </main>
+
+              {/* Right Map Panel */}
+              <aside className="w-[360px] bg-brand-sand border-l border-brand-border flex flex-col shrink-0">
+                <div className="h-[70px] border-b border-brand-border flex items-center gap-2 px-5">
+                  <MapPin className="w-4.5 h-4.5 text-brand-accent" />
+                  <h3 className="text-sm font-semibold">Verified Maps Finder</h3>
+                </div>
+                
+                {/* Map container */}
+                <div className="h-64 border-b border-brand-border relative">
+                  <div ref={mapRef} className="w-full h-full bg-slate-200"></div>
+                </div>
+                
+                {/* Specialist listings */}
+                <div className="flex-1 flex flex-col p-5 overflow-y-auto">
+                  <div className="flex justify-between items-center mb-4 select-none">
+                    <h4 className="text-[10px] font-mono tracking-widest text-brand-textMuted uppercase font-bold">Specialists Near You</h4>
+                    <span className="text-[9px] font-mono text-brand-accent bg-brand-accent/10 border border-brand-accent/20 px-2 py-0.5 rounded-full uppercase">
+                      {profile.city.split(',')[0]}
+                    </span>
+                  </div>
+                  
+                  <div className="flex flex-col gap-2.5">
+                    {matchedProfile.doctors.map((doc, i) => (
+                      <div key={i} className="bg-white border border-brand-border rounded-xl p-3 hover:border-brand-borderHover transition-all cursor-pointer">
+                        <div className="font-bold text-xs text-brand-accent mb-0.5">👨‍⚕️ {doc.name}</div>
+                        <div className="text-[11px] text-brand-textMuted">{doc.specialty} • {doc.phone}</div>
+                        <div className="text-[10px] text-brand-textMuted/60 mt-1">{doc.address}</div>
+                      </div>
+                    ))}
+                    {matchedProfile.labs.map((lab, i) => (
+                      <div key={i} className="bg-white border border-brand-border rounded-xl p-3 hover:border-brand-borderHover transition-all cursor-pointer">
+                        <div className="font-bold text-xs text-purple-700 mb-0.5">🔬 {lab.name}</div>
+                        <div className="text-[11px] text-brand-textMuted">Diagnostic Labs • {lab.phone}</div>
+                        <div className="text-[10px] text-brand-textMuted/60 mt-1">{lab.address}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </aside>
+            </>
+          )}
         </section>
       </div>
 
@@ -1418,6 +1474,9 @@ export default function App() {
         <span id="active-city-indicator">{profile.city}</span>
         <button id="btn-edit-profile">Edit</button>
       </div>
+
+      {/* In-App Toast Alert Layer for 20s Background Notification Scheduler */}
+      <InAppToast />
 
     </div>
   );
