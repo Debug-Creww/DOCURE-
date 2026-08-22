@@ -355,6 +355,16 @@ export default function App() {
     }
   }, [activePage]);
 
+  // Cursor tracking for interactive spotlight background
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      document.documentElement.style.setProperty('--mouse-x', `${e.clientX}px`);
+      document.documentElement.style.setProperty('--mouse-y', `${e.clientY}px`);
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
   // Audio tone generation for siren
   const playBeepTone = (frequency, duration) => {
     try {
@@ -709,6 +719,9 @@ export default function App() {
 
   return (
     <div className="w-full h-screen overflow-hidden relative">
+      {/* Interactive cursor spotlight tracking background glow */}
+      <div className="fixed inset-0 cursor-spotlight z-0 pointer-events-none"></div>
+
       <div 
         className="w-full h-[200vh] flex flex-col slide-transition z-10 relative"
         style={{ transform: activePage === 'dashboard' ? 'translateY(-100vh)' : 'translateY(0)' }}
@@ -749,6 +762,9 @@ export default function App() {
               </button>
             </div>
           </header>
+
+          {/* Static Green Highlights Gradient behind text */}
+          <div className="absolute top-[25%] left-[5%] w-[450px] h-[450px] bg-[#10b981]/8 rounded-full blur-[100px] pointer-events-none z-0"></div>
 
           {/* Hero Content */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center flex-1 max-w-7xl mx-auto w-full relative z-20">
