@@ -512,6 +512,20 @@ export default function App() {
   // Page routing
   const [activePage, setActivePage] = useState('landing');
   const [activeTab, setActiveTab] = useState('reduce');
+  const [currentUserId, setCurrentUserId] = useState(getDefaultUserId());
+  const [liveReminders, setLiveReminders] = useState([]);
+
+  // Initialize background notification scheduler & subscribe to live Firestore reminders
+  useEffect(() => {
+    const teardownScheduler = startNotificationScheduler([]);
+    const unsubscribeReminders = subscribeReminders(currentUserId, (data) => {
+      setLiveReminders(data);
+    });
+    return () => {
+      teardownScheduler();
+      unsubscribeReminders();
+    };
+  }, [currentUserId]);
   
   // Profile settings state
   const [profileModalOpen, setProfileModalOpen] = useState(false);
