@@ -3,13 +3,21 @@ import {
   ArrowLeft, Activity, LineChart, BarChart3, ClipboardList, 
   Settings, UserCog, User, MapPin, X, Bot, Bell, 
   Phone, Trash2, Send, Mic, Volume2, VolumeX, ShieldAlert,
-  Pill
+  Pill, Navigation, Compass, ExternalLink, RefreshCw,
+  LocateFixed, Building2, Stethoscope, TestTube2, PhoneCall,
+  Navigation2
 } from 'lucide-react';
 import MedicineReminder from './components/MedicineReminder/MedicineReminder';
 import InAppToast from './components/MedicineReminder/InAppToast';
+import MedicalRadarNode from './components/MedicalRadar/MedicalRadarNode';
 import { startNotificationScheduler } from './services/notificationScheduler';
 import { getDefaultUserId } from './firebase';
 import { subscribeReminders, addReminder, deleteReminder } from './services/firestoreReminders';
+import { 
+  getUserLocation, 
+  reverseGeocodeCity, 
+  fetchNearbyMedicalPlaces 
+} from './services/medicalPlacesService';
 
 // Maps coordinates
 const CityCoordinates = {
@@ -147,10 +155,18 @@ export default function App() {
   const [pulse, setPulse] = useState(72);
   const ekgCanvasRef = useRef(null);
 
-  // Map settings
+  // Map settings & Live Geolocation State
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markersGroupRef = useRef(null);
+  const userMarkerRef = useRef(null);
+  const placesMarkersMapRef = useRef(new Map());
+
+  const [userCoords, setUserCoords] = useState({ lat: 28.4744, lng: 77.5030 }); // Default Greater Noida / NCR
+  const [nearbyPlaces, setNearbyPlaces] = useState([]);
+  const [selectedPlaceCategory, setSelectedPlaceCategory] = useState('all'); // 'all' | 'hospital' | 'doctor' | 'lab' | 'pharmacy'
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
+  const [locationAddress, setLocationAddress] = useState('Greater Noida, UP');
 
   // File upload indicator state
   const [uploadingReport, setUploadingReport] = useState(false);
@@ -278,72 +294,162 @@ export default function App() {
     return () => cancelAnimationFrame(frameId);
   }, [risk]);
 
-  // Leaflet Maps loader
-  const loadMapMarkers = (city) => {
+  // Plot real-time medical facility markers on Leaflet map
+  const plotPlacesOnMap = (places, userLocation = null) => {
     if (!window.L || !mapInstanceRef.current || !markersGroupRef.current) return;
-    
-    const cleanCity = city.toLowerCase().trim();
-    let coords = [28.6139, 77.2090]; // Delhi default
-    let matched = false;
-    
-    for (let key in CityCoordinates) {
-      if (cleanCity.includes(key) || key.includes(cleanCity)) {
-        coords = CityCoordinates[key];
-        matched = true;
-        break;
-      }
-    }
-    
-    mapInstanceRef.current.setView(coords, 13);
     markersGroupRef.current.clearLayers();
-    
-    // Choose appropriate profile
-    let profileKey = "general";
-    let lowerSymptoms = userSymptoms.toLowerCase();
-    if (lowerSymptoms.includes("head") || lowerSymptoms.includes("migraine") || lowerSymptoms.includes("dizzy")) {
-      profileKey = "headache";
-    } else if (lowerSymptoms.includes("fever") || lowerSymptoms.includes("cough") || lowerSymptoms.includes("cold") || lowerSymptoms.includes("throat")) {
-      profileKey = "fever";
-    } else if (lowerSymptoms.includes("stomach") || lowerSymptoms.includes("belly") || lowerSymptoms.includes("nausea")) {
-      profileKey = "stomach";
+    placesMarkersMapRef.current.clear();
+
+    const uLat = userLocation?.lat || userCoords.lat;
+    const uLng = userLocation?.lng || userCoords.lng;
+
+    // Plot User's live location radar pin
+    if (uLat && uLng) {
+      if (userMarkerRef.current) {
+        try { userMarkerRef.current.remove(); } catch(e) {}
+      }
+      const userIcon = window.L.divIcon({
+        className: 'user-live-pin',
+        html: '<div style="position:relative; width:20px; height:20px; display:flex; align-items:center; justify-content:center;"><div style="position:absolute; width:20px; height:20px; border-radius:50%; background:#2563eb; opacity:0.35; animation:pulse-status 1.5s infinite;"></div><div style="width:12px; height:12px; border-radius:50%; background:#2563eb; border:2.5px solid white; box-shadow:0 0 10px rgba(37,99,235,0.9);"></div></div>',
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
+      });
+      userMarkerRef.current = window.L.marker([uLat, uLng], { icon: userIcon })
+        .bindPopup(`<div style="font-family:sans-serif; font-size:11px;"><strong>📍 Your Current Location</strong><br><span style="color:#64748b;">${locationAddress || 'Detected GPS'}</span></div>`)
+        .addTo(mapInstanceRef.current);
     }
-    
-    const activeProf = MedicalKnowledge[profileKey];
-    setMatchedProfile(activeProf);
-    
-    // doctor markers
-    activeProf.doctors.forEach((doc, idx) => {
-      const latOffset = (idx === 0) ? 0.003 : -0.004;
-      const lngOffset = (idx === 0) ? -0.004 : 0.005;
-      const docPos = [coords[0] + latOffset, coords[1] + lngOffset];
-      
-      const docIcon = window.L.divIcon({
-        className: 'glowing-pin doctor',
-        iconSize: [14, 14],
-        iconAnchor: [7, 7]
+
+    // Plot each nearby doctor/hospital/lab/pharmacy pin
+    places.forEach((place) => {
+      if (!place.lat || !place.lng) return;
+
+      let bgColor = '#0f766e';
+      let shadowColor = 'rgba(15,118,110,0.6)';
+      let pulseColor = 'rgba(15,118,110,0.25)';
+      let emoji = '🏥';
+      let tagLabel = 'HOSPITAL';
+
+      if (place.type === 'doctor') {
+        bgColor = '#2563eb';
+        shadowColor = 'rgba(37,99,235,0.6)';
+        pulseColor = 'rgba(37,99,235,0.25)';
+        emoji = '👨‍⚕️';
+        tagLabel = 'DOCTOR / CLINIC';
+      } else if (place.type === 'lab') {
+        bgColor = '#8b5cf6';
+        shadowColor = 'rgba(139,92,246,0.6)';
+        pulseColor = 'rgba(139,92,246,0.25)';
+        emoji = '🔬';
+        tagLabel = 'DIAGNOSTIC LAB';
+      } else if (place.type === 'pharmacy') {
+        bgColor = '#10b981';
+        shadowColor = 'rgba(16,185,129,0.6)';
+        pulseColor = 'rgba(16,185,129,0.25)';
+        emoji = '💊';
+        tagLabel = 'PHARMACY';
+      }
+
+      const iconHtml = `
+        <div style="position:relative; width:32px; height:32px; display:flex; align-items:center; justify-content:center; cursor:pointer;" title="${place.name}">
+          <div style="position:absolute; width:32px; height:32px; border-radius:50%; background:${pulseColor}; animation:pulse-status 2s infinite;"></div>
+          <div style="width:26px; height:26px; border-radius:50%; background:${bgColor}; border:2.5px solid white; box-shadow:0 3px 10px ${shadowColor}; display:flex; align-items:center; justify-content:center; font-size:12px; transform:translateZ(0); text-shadow:0 1px 2px rgba(0,0,0,0.2);">
+            ${emoji}
+          </div>
+        </div>
+      `;
+
+      const icon = window.L.divIcon({
+        className: `custom-medical-pin ${place.type}-pin`,
+        html: iconHtml,
+        iconSize: [32, 32],
+        iconAnchor: [16, 16]
       });
-      
-      window.L.marker(docPos, { icon: docIcon })
-        .bindPopup(`<strong>${doc.name}</strong><br>${doc.specialty}<br>${doc.phone}`)
+
+      const popupContent = `
+        <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 11px; min-width: 210px; color: #0f172a; padding: 2px;">
+          <div style="font-size: 9px; font-weight: 700; color: ${bgColor}; text-transform: uppercase; margin-bottom: 2px; display:flex; align-items:center; gap:4px;">
+            <span>${emoji}</span>
+            <span>${tagLabel}</span>
+          </div>
+          <div style="font-weight: 700; font-size: 13px; margin-bottom: 3px; line-height: 1.25; color:#0f172a;">${place.name}</div>
+          <div style="color: #64748b; font-size: 10px; margin-bottom: 4px; line-height: 1.3;">${place.address}</div>
+          <div style="font-weight: 600; color: #0f766e; font-size: 11px; margin-bottom: 6px;">📏 ${place.distanceKm} (${place.drivingTime})</div>
+          <div style="display: flex; gap: 6px; margin-top: 6px;">
+            <a href="tel:${place.phone}" style="flex: 1; text-align: center; background: #0f766e; color: white; padding: 6px 8px; border-radius: 8px; text-decoration: none; font-size: 10px; font-weight: 700;">📞 Call</a>
+            <a href="${place.directionsUrl}" target="_blank" rel="noopener noreferrer" style="flex: 1; text-align: center; background: #2563eb; color: white; padding: 6px 8px; border-radius: 8px; text-decoration: none; font-size: 10px; font-weight: 700;">🗺️ Route</a>
+          </div>
+        </div>
+      `;
+
+      const marker = window.L.marker([place.lat, place.lng], { icon })
+        .bindPopup(popupContent)
         .addTo(markersGroupRef.current);
-    });
-    
-    // lab markers
-    activeProf.labs.forEach((lab) => {
-      const latOffset = -0.002;
-      const lngOffset = -0.002;
-      const labPos = [coords[0] + latOffset, coords[1] + lngOffset];
       
-      const labIcon = window.L.divIcon({
-        className: 'glowing-pin lab',
-        iconSize: [14, 14],
-        iconAnchor: [7, 7]
-      });
-      
-      window.L.marker(labPos, { icon: labIcon })
-        .bindPopup(`<strong>${lab.name}</strong><br>Lab Tests & Scans<br>${lab.phone}`)
-        .addTo(markersGroupRef.current);
+      placesMarkersMapRef.current.set(place.id, marker);
     });
+  };
+
+  // Fetch real-time nearby medical places from TomTom service
+  const loadRealNearbyPlaces = async (lat, lng, category = 'all') => {
+    if (!lat || !lng) return;
+    try {
+      const places = await fetchNearbyMedicalPlaces(lat, lng, category);
+      setNearbyPlaces(places);
+      plotPlacesOnMap(places, { lat, lng });
+    } catch (err) {
+      console.error('Error loading nearby places:', err);
+    }
+  };
+
+  // Detect user's live GPS location and refresh nearby facilities
+  const handleDetectUserLocation = async () => {
+    setIsDetectingLocation(true);
+    try {
+      const loc = await getUserLocation();
+      if (loc && loc.lat && loc.lng) {
+        setUserCoords({ lat: loc.lat, lng: loc.lng });
+        
+        // Reverse geocode to readable address
+        const geoInfo = await reverseGeocodeCity(loc.lat, loc.lng);
+        setLocationAddress(geoInfo.formattedAddress || geoInfo.city);
+        setProfile(prev => ({ ...prev, city: geoInfo.city }));
+
+        // Center map on user location
+        if (mapInstanceRef.current && window.L) {
+          mapInstanceRef.current.setView([loc.lat, loc.lng], 14);
+        }
+
+        // Fetch real-time medical places around user
+        await loadRealNearbyPlaces(loc.lat, loc.lng, selectedPlaceCategory);
+      }
+    } catch (err) {
+      console.error('Location detection failed:', err);
+    } finally {
+      setIsDetectingLocation(false);
+    }
+  };
+
+  // Center map on place card click
+  const handlePlaceCardClick = (place) => {
+    if (!mapInstanceRef.current || !place.lat || !place.lng) return;
+    mapInstanceRef.current.flyTo([place.lat, place.lng], 16, { animate: true, duration: 0.8 });
+    const marker = placesMarkersMapRef.current.get(place.id);
+    if (marker) {
+      setTimeout(() => marker.openPopup(), 500);
+    }
+  };
+
+  // Handle category filter change (all, hospital, doctor, lab, pharmacy)
+  const handleCategoryFilterChange = async (cat) => {
+    setSelectedPlaceCategory(cat);
+    const lat = userCoords?.lat || 28.4744;
+    const lng = userCoords?.lng || 77.5030;
+    await loadRealNearbyPlaces(lat, lng, cat);
+  };
+
+  // Fallback / legacy map loader compatibility
+  const loadMapMarkers = (city) => {
+    handleDetectUserLocation();
   };
 
   // Initialize Leaflet Map once dashboard displays
@@ -364,7 +470,9 @@ export default function App() {
             
             markersGroupRef.current = window.L.layerGroup().addTo(inst);
             mapInstanceRef.current = inst;
-            loadMapMarkers(profile.city);
+            
+            // Auto detect user location and load real nearby medical places
+            handleDetectUserLocation();
           } catch (e) {
             console.error("Leaflet init error:", e);
           }
@@ -936,9 +1044,10 @@ export default function App() {
               <button 
                 className={`sidebar-item flex flex-col items-center justify-center py-3 text-[10px] w-[70px] mx-auto rounded-2xl relative transition-all duration-300 ${activeTab === 'analyze' ? 'bg-white text-[#0f766e] font-bold shadow-lg shadow-black/10' : 'text-white/70 hover:text-white hover:bg-white/5'}`}
                 onClick={() => setActiveTab('analyze')}
+                title="Spatial Care Radar & Medical Maps"
               >
-                <LineChart className="w-5 h-5 mb-1" />
-                <span>Analyze</span>
+                <Compass className="w-5 h-5 mb-1" />
+                <span>Radar</span>
               </button>
               <button 
                 className={`sidebar-item flex flex-col items-center justify-center py-3 text-[10px] w-[70px] mx-auto rounded-2xl relative transition-all duration-300 ${activeTab === 'reduce' ? 'bg-white text-[#0f766e] font-bold shadow-lg shadow-black/10' : 'text-white/70 hover:text-white hover:bg-white/5'}`}
@@ -982,129 +1091,137 @@ export default function App() {
             </div>
           </div>
 
-          {/* Left Aside Diagnostic panel */}
-          <aside className="w-80 bg-brand-sand border-r border-brand-border flex flex-col p-5 gap-4 overflow-y-auto shrink-0 select-none">
-            <div className="flex items-center gap-2">
-              <button 
-                className="text-brand-textMuted hover:text-brand-textDark text-xs font-semibold flex items-center gap-1"
-                onClick={() => setActivePage('landing')}
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                Back to Home
-              </button>
-            </div>
-
-            {/* Wellness Pulse graph */}
-            <div className="bg-white border border-brand-border rounded-2xl p-4 flex flex-col gap-3 transition-all duration-300 hover:border-brand-borderHover">
-              <div className="flex items-center gap-2 text-brand-accent">
-                <Activity className="w-4 h-4 text-brand-glowingGreen animate-pulse" />
-                <h4 className="text-[11px] font-mono font-bold tracking-wider uppercase">Wellness Heartbeat</h4>
-              </div>
-              <canvas ref={ekgCanvasRef} width="240" height="50" className="bg-slate-900 border border-slate-800 rounded-lg w-full"></canvas>
-              <div className="flex justify-between text-xs font-mono">
-                <span>Pulse: <strong>{pulse}</strong> BPM</span>
-                <span>Risk: <strong style={{ color: risk === 'SOS' ? '#f43f5e' : (risk === 'Elevated' ? '#8b5cf6' : '#10b981') }}>{risk}</strong></span>
-              </div>
-            </div>
-
-            {/* Prescriptions reminders scheduler */}
-            <div className="bg-white border border-brand-border rounded-2xl p-4 flex flex-col gap-3 transition-all duration-300 hover:border-brand-borderHover">
-              <div className="flex items-center gap-2 text-brand-accent">
-                <ClipboardList className="w-4 h-4" />
-                <h4 className="text-[11px] font-mono font-bold tracking-wider uppercase">Active Prescriptions</h4>
-              </div>
-              
-              <div className="flex flex-col gap-2 max-h-36 overflow-y-auto">
-                {liveReminders.length === 0 ? (
-                  <p className="text-[11px] text-slate-400 italic py-1 text-center">No prescriptions scheduled yet.</p>
-                ) : (
-                  liveReminders.map(med => (
-                    <div key={med.id} className="bg-brand-sand border border-brand-border rounded-lg p-2 flex justify-between items-center">
-                      <div className="flex flex-col text-xs">
-                        <span className="font-bold text-brand-textDark flex items-center gap-1">
-                          <span>{med.medIcon || '💊'}</span> {med.medicineName}
-                        </span>
-                        <span className="text-[10px] text-brand-textMuted">
-                          {med.dosage} • {Array.isArray(med.doseTimes) ? med.doseTimes.join(', ') : med.time || ''}
-                        </span>
-                      </div>
-                      <button 
-                        className="text-brand-textMuted hover:text-brand-rose font-bold text-base px-1.5 hover:bg-black/5 rounded"
-                        onClick={() => deleteReminder(med.id, currentUserId, med)}
-                        title="Delete prescription"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              <div className="flex flex-col gap-2 mt-1">
+          {/* Left Aside Diagnostic panel (Hidden on standalone Node views like Radar & Reminders) */}
+          {activeTab !== 'analyze' && activeTab !== 'reminders' && (
+            <aside className="w-80 bg-brand-sand border-r border-brand-border flex flex-col p-5 gap-4 overflow-y-auto shrink-0 select-none">
+              <div className="flex items-center gap-2">
                 <button 
-                  className="w-full py-1 bg-brand-sand border border-brand-border hover:bg-brand-border/10 text-xs font-semibold rounded-lg"
-                  onClick={() => setPrescFormOpen(!prescFormOpen)}
+                  className="text-brand-textMuted hover:text-brand-textDark text-xs font-semibold flex items-center gap-1"
+                  onClick={() => setActivePage('landing')}
                 >
-                  + Add Prescription
-                </button>
-                
-                {prescFormOpen && (
-                  <div className="flex flex-col gap-2 border-t border-brand-border pt-2">
-                    <input 
-                      type="text" 
-                      placeholder="Pill Name" 
-                      value={newPrescName}
-                      onChange={e => setNewPrescName(e.target.value)}
-                      className="border border-brand-border rounded px-2 py-1 outline-none text-xs focus:border-brand-accent bg-white"
-                    />
-                    <input 
-                      type="text" 
-                      placeholder="Dose Time (e.g. 08:00 AM)" 
-                      value={newPrescTime}
-                      onChange={e => setNewPrescTime(e.target.value)}
-                      className="border border-brand-border rounded px-2 py-1 outline-none text-xs focus:border-brand-accent bg-white"
-                    />
-                    <div className="flex gap-2">
-                      <button 
-                        className="flex-1 py-1 bg-brand-accent/10 border border-brand-accent/30 text-brand-accent text-xs font-bold rounded-lg"
-                        onClick={handleAddPrescription}
-                      >
-                        Add
-                      </button>
-                      <button 
-                        className="flex-1 py-1 bg-transparent text-brand-textMuted text-xs font-bold rounded-lg"
-                        onClick={() => setPrescFormOpen(false)}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                )}
-                
-                <button
-                  onClick={() => setActiveTab('reminders')}
-                  className="w-full py-1.5 bg-brand-accent/10 hover:bg-brand-accent/20 border border-brand-accent/30 text-brand-accent text-[10px] font-bold rounded-lg flex items-center justify-center gap-1 transition-all"
-                >
-                  <Pill className="w-3 h-3" />
-                  <span>Full Medication Schedules →</span>
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  Back to Home
                 </button>
               </div>
-            </div>
 
-            {/* Emergency SOS override button */}
-            <div className="mt-auto">
-              <button 
-                className="w-full py-3 bg-brand-rose hover:bg-red-600 text-white font-mono font-bold text-xs tracking-wider rounded-xl shadow-lg shadow-rose-200/50"
-                onClick={triggerEmergency}
-              >
-                🚨 EMERGENCY SOS TRIGGER
-              </button>
-            </div>
-          </aside>
+              {/* Wellness Pulse graph */}
+              <div className="bg-white border border-brand-border rounded-2xl p-4 flex flex-col gap-3 transition-all duration-300 hover:border-brand-borderHover">
+                <div className="flex items-center gap-2 text-brand-accent">
+                  <Activity className="w-4 h-4 text-brand-glowingGreen animate-pulse" />
+                  <h4 className="text-[11px] font-mono font-bold tracking-wider uppercase">Wellness Heartbeat</h4>
+                </div>
+                <canvas ref={ekgCanvasRef} width="240" height="50" className="bg-slate-900 border border-slate-800 rounded-lg w-full"></canvas>
+                <div className="flex justify-between text-xs font-mono">
+                  <span>Pulse: <strong>{pulse}</strong> BPM</span>
+                  <span>Risk: <strong style={{ color: risk === 'SOS' ? '#f43f5e' : (risk === 'Elevated' ? '#8b5cf6' : '#10b981') }}>{risk}</strong></span>
+                </div>
+              </div>
 
-          {/* Main Area: Render MedicineReminder if activeTab === 'reminders', otherwise Triage Desk & Map */}
+              {/* Prescriptions reminders scheduler */}
+              <div className="bg-white border border-brand-border rounded-2xl p-4 flex flex-col gap-3 transition-all duration-300 hover:border-brand-borderHover">
+                <div className="flex items-center gap-2 text-brand-accent">
+                  <ClipboardList className="w-4 h-4" />
+                  <h4 className="text-[11px] font-mono font-bold tracking-wider uppercase">Active Prescriptions</h4>
+                </div>
+                
+                <div className="flex flex-col gap-2 max-h-36 overflow-y-auto">
+                  {liveReminders.length === 0 ? (
+                    <p className="text-[11px] text-slate-400 italic py-1 text-center">No prescriptions scheduled yet.</p>
+                  ) : (
+                    liveReminders.map(med => (
+                      <div key={med.id} className="bg-brand-sand border border-brand-border rounded-lg p-2 flex justify-between items-center">
+                        <div className="flex flex-col text-xs">
+                          <span className="font-bold text-brand-textDark flex items-center gap-1">
+                            <span>{med.medIcon || '💊'}</span> {med.medicineName}
+                          </span>
+                          <span className="text-[10px] text-brand-textMuted">
+                            {med.dosage} • {Array.isArray(med.doseTimes) ? med.doseTimes.join(', ') : med.time || ''}
+                          </span>
+                        </div>
+                        <button 
+                          className="text-brand-textMuted hover:text-brand-rose font-bold text-base px-1.5 hover:bg-black/5 rounded"
+                          onClick={() => deleteReminder(med.id, currentUserId, med)}
+                          title="Delete prescription"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-2 mt-1">
+                  <button 
+                    className="w-full py-1 bg-brand-sand border border-brand-border hover:bg-brand-border/10 text-xs font-semibold rounded-lg"
+                    onClick={() => setPrescFormOpen(!prescFormOpen)}
+                  >
+                    + Add Prescription
+                  </button>
+                  
+                  {prescFormOpen && (
+                    <div className="flex flex-col gap-2 border-t border-brand-border pt-2">
+                      <input 
+                        type="text" 
+                        placeholder="Pill Name" 
+                        value={newPrescName}
+                        onChange={e => setNewPrescName(e.target.value)}
+                        className="border border-brand-border rounded px-2 py-1 outline-none text-xs focus:border-brand-accent bg-white"
+                      />
+                      <input 
+                        type="text" 
+                        placeholder="Dose Time (e.g. 08:00 AM)" 
+                        value={newPrescTime}
+                        onChange={e => setNewPrescTime(e.target.value)}
+                        className="border border-brand-border rounded px-2 py-1 outline-none text-xs focus:border-brand-accent bg-white"
+                      />
+                      <div className="flex gap-2">
+                        <button 
+                          className="flex-1 py-1 bg-brand-accent/10 border border-brand-accent/30 text-brand-accent text-xs font-bold rounded-lg"
+                          onClick={handleAddPrescription}
+                        >
+                          Add
+                        </button>
+                        <button 
+                          className="flex-1 py-1 bg-transparent text-brand-textMuted text-xs font-bold rounded-lg"
+                          onClick={() => setPrescFormOpen(false)}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <button
+                    onClick={() => setActiveTab('reminders')}
+                    className="w-full py-1.5 bg-brand-accent/10 hover:bg-brand-accent/20 border border-brand-accent/30 text-brand-accent text-[10px] font-bold rounded-lg flex items-center justify-center gap-1 transition-all"
+                  >
+                    <Pill className="w-3 h-3" />
+                    <span>Full Medication Schedules →</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Emergency SOS override button */}
+              <div className="mt-auto">
+                <button 
+                  className="w-full py-3 bg-brand-rose hover:bg-red-600 text-white font-mono font-bold text-xs tracking-wider rounded-xl shadow-lg shadow-rose-200/50"
+                  onClick={triggerEmergency}
+                >
+                  🚨 EMERGENCY SOS TRIGGER
+                </button>
+              </div>
+            </aside>
+          )}
+
+          {/* Main Area: Render dedicated Node tabs */}
           {activeTab === 'reminders' ? (
             <MedicineReminder userId={currentUserId} />
+          ) : activeTab === 'analyze' ? (
+            <MedicalRadarNode 
+              defaultCity={profile.city} 
+              onOpenEmergency={triggerEmergency} 
+              onBackHome={() => setActivePage('landing')} 
+            />
           ) : (
             <>
               {/* Center Chat Panel */}
@@ -1217,43 +1334,186 @@ export default function App() {
                 </div>
               </main>
 
-              {/* Right Map Panel */}
-              <aside className="w-[360px] bg-brand-sand border-l border-brand-border flex flex-col shrink-0">
-                <div className="h-[70px] border-b border-brand-border flex items-center gap-2 px-5">
-                  <MapPin className="w-4.5 h-4.5 text-brand-accent" />
-                  <h3 className="text-sm font-semibold">Verified Maps Finder</h3>
+              {/* Right Map Panel: Real-Time Medical Radar */}
+              <aside className="w-[380px] bg-brand-sand border-l border-brand-border flex flex-col shrink-0">
+                {/* Radar Header */}
+                <div className="p-4 border-b border-brand-border flex flex-col gap-2.5 bg-white/50 backdrop-blur-sm">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-xl bg-[#0f766e]/10 border border-[#0f766e]/20 flex items-center justify-center text-[#0f766e]">
+                        <Compass className="w-4 h-4 animate-spin-slow" />
+                      </div>
+                      <div>
+                        <h3 className="text-xs font-bold text-brand-textDark">Medical Radar</h3>
+                        <p className="text-[10px] text-brand-textMuted flex items-center gap-1 font-mono">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                          Live GPS Radius: 10 km
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Auto Detect GPS Button */}
+                    <button
+                      onClick={handleDetectUserLocation}
+                      disabled={isDetectingLocation}
+                      className="px-3 py-1.5 bg-[#0f766e] hover:bg-[#0d645e] disabled:opacity-50 text-white rounded-xl text-[10px] font-bold font-mono flex items-center gap-1.5 shadow-sm transition-all active:scale-95"
+                      title="Detect My Current GPS Location"
+                    >
+                      {isDetectingLocation ? (
+                        <>
+                          <RefreshCw className="w-3 h-3 animate-spin" />
+                          <span>Detecting...</span>
+                        </>
+                      ) : (
+                        <>
+                          <LocateFixed className="w-3 h-3 text-emerald-300 animate-pulse" />
+                          <span>Locate Me</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Detected Address pill */}
+                  <div className="flex items-center justify-between text-[10px] bg-slate-100/80 px-2.5 py-1 rounded-lg text-slate-600 font-mono">
+                    <span className="truncate flex items-center gap-1">
+                      <MapPin className="w-3 h-3 text-[#0f766e] shrink-0" />
+                      <strong className="text-slate-800 font-bold">{locationAddress || profile.city}</strong>
+                    </span>
+                    <span className="text-[9px] text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded font-bold shrink-0 ml-1">
+                      GPS ACTIVE
+                    </span>
+                  </div>
+
+                  {/* Category Filter Pills */}
+                  <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                    {[
+                      { id: 'all', label: 'All Places', emoji: '🌟' },
+                      { id: 'hospital', label: 'Hospitals', emoji: '🏥' },
+                      { id: 'doctor', label: 'Doctors', emoji: '👨‍⚕️' },
+                      { id: 'lab', label: 'Labs', emoji: '🔬' },
+                      { id: 'pharmacy', label: 'Pharmacy', emoji: '💊' }
+                    ].map((cat) => (
+                      <button
+                        key={cat.id}
+                        onClick={() => handleCategoryFilterChange(cat.id)}
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap transition-all flex items-center gap-1 ${
+                          selectedPlaceCategory === cat.id
+                            ? 'bg-[#0f766e] text-white shadow-sm'
+                            : 'bg-white border border-brand-border text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        <span>{cat.emoji}</span>
+                        <span>{cat.label}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 
-                {/* Map container */}
-                <div className="h-64 border-b border-brand-border relative">
-                  <div ref={mapRef} className="w-full h-full bg-slate-200"></div>
+                {/* Interactive Leaflet Map container */}
+                <div className="h-56 border-b border-brand-border relative">
+                  <div ref={mapRef} className="w-full h-full bg-slate-100"></div>
+                  
+                  {/* Floating Map Hint */}
+                  <div className="absolute bottom-2 left-2 z-[400] bg-white/90 backdrop-blur-sm border border-slate-200 px-2 py-0.5 rounded text-[9px] font-mono text-slate-600 shadow-sm pointer-events-none">
+                    💡 Click card below to focus marker
+                  </div>
                 </div>
                 
-                {/* Specialist listings */}
-                <div className="flex-1 flex flex-col p-5 overflow-y-auto">
-                  <div className="flex justify-between items-center mb-4 select-none">
-                    <h4 className="text-[10px] font-mono tracking-widest text-brand-textMuted uppercase font-bold">Specialists Near You</h4>
-                    <span className="text-[9px] font-mono text-brand-accent bg-brand-accent/10 border border-brand-accent/20 px-2 py-0.5 rounded-full uppercase">
-                      {profile.city.split(',')[0]}
+                {/* Real-time Places Listings */}
+                <div className="flex-1 flex flex-col p-4 overflow-y-auto gap-3">
+                  <div className="flex justify-between items-center select-none">
+                    <h4 className="text-[10px] font-mono tracking-wider text-slate-500 uppercase font-bold flex items-center gap-1">
+                      <span>Nearby Medical Places</span>
+                      <span className="bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded-full text-[9px] font-bold">
+                        {nearbyPlaces.length} Found
+                      </span>
+                    </h4>
+                    <span className="text-[9px] font-mono text-slate-400">
+                      Real-Time Radar
                     </span>
                   </div>
                   
-                  <div className="flex flex-col gap-2.5">
-                    {matchedProfile.doctors.map((doc, i) => (
-                      <div key={i} className="bg-white border border-brand-border rounded-xl p-3 hover:border-brand-borderHover transition-all cursor-pointer">
-                        <div className="font-bold text-xs text-brand-accent mb-0.5">👨‍⚕️ {doc.name}</div>
-                        <div className="text-[11px] text-brand-textMuted">{doc.specialty} • {doc.phone}</div>
-                        <div className="text-[10px] text-brand-textMuted/60 mt-1">{doc.address}</div>
-                      </div>
-                    ))}
-                    {matchedProfile.labs.map((lab, i) => (
-                      <div key={i} className="bg-white border border-brand-border rounded-xl p-3 hover:border-brand-borderHover transition-all cursor-pointer">
-                        <div className="font-bold text-xs text-purple-700 mb-0.5">🔬 {lab.name}</div>
-                        <div className="text-[11px] text-brand-textMuted">Diagnostic Labs • {lab.phone}</div>
-                        <div className="text-[10px] text-brand-textMuted/60 mt-1">{lab.address}</div>
-                      </div>
-                    ))}
-                  </div>
+                  {nearbyPlaces.length === 0 ? (
+                    <div className="bg-white border border-brand-border rounded-2xl p-6 text-center text-slate-400 text-xs">
+                      <RefreshCw className="w-5 h-5 mx-auto mb-2 animate-spin text-[#0f766e]" />
+                      Scanning radius for verified facilities...
+                    </div>
+                  ) : (
+                    nearbyPlaces.map((place) => {
+                      let typeBadge = 'bg-teal-50 text-[#0f766e] border-teal-200';
+                      let typeLabel = 'HOSPITAL';
+                      let typeEmoji = '🏥';
+
+                      if (place.type === 'doctor') {
+                        typeBadge = 'bg-blue-50 text-blue-700 border-blue-200';
+                        typeLabel = 'DOCTOR / CLINIC';
+                        typeEmoji = '👨‍⚕️';
+                      } else if (place.type === 'lab') {
+                        typeBadge = 'bg-purple-50 text-purple-700 border-purple-200';
+                        typeLabel = 'DIAGNOSTIC LAB';
+                        typeEmoji = '🔬';
+                      } else if (place.type === 'pharmacy') {
+                        typeBadge = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                        typeLabel = 'PHARMACY';
+                        typeEmoji = '💊';
+                      }
+
+                      return (
+                        <div 
+                          key={place.id} 
+                          onClick={() => handlePlaceCardClick(place)}
+                          className="bg-white border border-brand-border hover:border-[#0f766e]/40 rounded-2xl p-3.5 hover:shadow-md transition-all cursor-pointer flex flex-col gap-2 group relative"
+                        >
+                          {/* Card Top: Type & Distance */}
+                          <div className="flex items-center justify-between">
+                            <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded-md border ${typeBadge}`}>
+                              {typeEmoji} {typeLabel}
+                            </span>
+                            <div className="flex items-center gap-1 text-[10px] font-mono font-bold text-[#0f766e]">
+                              <Navigation className="w-3 h-3" />
+                              <span>{place.distanceKm}</span>
+                              <span className="text-slate-400 font-normal text-[9px]">({place.drivingTime})</span>
+                            </div>
+                          </div>
+
+                          {/* Place Name */}
+                          <div>
+                            <h5 className="font-bold text-xs text-slate-800 group-hover:text-[#0f766e] transition-colors leading-snug">
+                              {place.name}
+                            </h5>
+                            <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-1">
+                              {place.address}
+                            </p>
+                          </div>
+
+                          {/* Action Buttons: 1-Click Call & Map Directions */}
+                          <div className="flex items-center gap-2 pt-1 border-t border-slate-100" onClick={e => e.stopPropagation()}>
+                            {/* Direct Phone Call Button */}
+                            <a 
+                              href={`tel:${place.phone}`}
+                              className="flex-1 py-1.5 px-2 bg-slate-50 hover:bg-[#0f766e] text-slate-700 hover:text-white border border-slate-200 hover:border-[#0f766e] rounded-xl text-[10px] font-bold font-mono flex items-center justify-center gap-1 transition-all active:scale-95"
+                              title={`Direct Call ${place.phone}`}
+                            >
+                              <PhoneCall className="w-3 h-3 text-[#0f766e] group-hover:text-white" />
+                              <span className="truncate">{place.phone}</span>
+                            </a>
+
+                            {/* Turn-by-Turn Map Directions */}
+                            <a 
+                              href={place.directionsUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="py-1.5 px-3 bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white border border-blue-200 hover:border-blue-600 rounded-xl text-[10px] font-bold font-mono flex items-center gap-1 transition-all active:scale-95 shrink-0"
+                              title="Open Directions in Google Maps"
+                            >
+                              <Navigation2 className="w-3 h-3 text-blue-600 group-hover:text-white" />
+                              <span>Directions</span>
+                            </a>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               </aside>
             </>
