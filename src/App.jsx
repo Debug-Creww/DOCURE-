@@ -717,23 +717,37 @@ export default function App() {
              PAGE 1: PREMIUM LANDING PAGE (Hero)
              ========================================== */}
         <section className="w-full h-screen flex flex-col justify-between p-6 select-none relative z-10">
-          {/* Navigation Header */}
-          <header className="flex justify-between items-center relative z-20">
+          {/* Navigation Header with Glassmorphism Bar */}
+          <header className="flex justify-between items-center px-8 py-4 mx-2 my-2 bg-[#0f766e]/5 backdrop-blur-md border border-[#0f766e]/15 rounded-2xl shadow-[0_4px_30px_rgba(0,0,0,0.03),_0_0_15px_rgba(15,118,110,0.05)] relative z-20">
+            {/* Brand Logo and Name - slightly inset because of padding */}
             <div 
-              className="flex items-center gap-2 cursor-pointer hover:opacity-90 active:scale-95 transition-all"
+              className="flex items-center gap-3 cursor-pointer hover:opacity-90 active:scale-95 transition-all"
               onClick={() => setActivePage('dashboard')}
             >
-              <img src="assets/logo_original.png?v=5" alt="DOCURE Logo" className="h-10 w-auto mix-blend-multiply" />
-              <h2 className="font-mono text-xl font-bold tracking-tight text-brand-accent">DOCURE</h2>
+              <img src="assets/logo_original.png?v=5" alt="DOCURE Logo" className="h-9 w-auto mix-blend-multiply" />
+              <h2 className="font-mono text-lg font-bold tracking-tight text-[#0f766e]">DOCURE</h2>
             </div>
 
+            {/* Right side buttons: Settings and Red Circular SOS/Alert */}
+            <div className="flex items-center gap-3">
+              {/* Settings button */}
+              <button 
+                className="w-10 h-10 rounded-full bg-white/50 hover:bg-[#0f766e]/10 border border-[#0f766e]/10 flex items-center justify-center text-brand-accent transition-all active:scale-95 shadow-sm"
+                onClick={() => { setActivePage('dashboard'); setActiveTab('settings'); }}
+                title="Settings"
+              >
+                <Settings className="w-5 h-5" />
+              </button>
 
-            <button 
-              className="bg-brand-textDark text-white px-5 py-2.5 text-xs font-bold rounded-xl shadow-md hover:bg-brand-accent active:scale-95 transition-all"
-              onClick={() => setActivePage('dashboard')}
-            >
-              Access Triage Desk
-            </button>
+              {/* Red Circular Alert button with Exclamation Mark */}
+              <button 
+                className="w-10 h-10 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center text-white transition-all active:scale-95 shadow-md shadow-red-200/50"
+                onClick={triggerEmergency}
+                title="Emergency SOS"
+              >
+                <span className="font-mono font-bold text-xl leading-none">!</span>
+              </button>
+            </div>
           </header>
 
           {/* Hero Content */}
