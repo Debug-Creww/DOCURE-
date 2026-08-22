@@ -30,33 +30,54 @@ body {
 /* Keyframes */
 @keyframes ear-wiggle-left {
   0%, 100% { transform: rotate(0deg); }
-  50% { transform: rotate(-8deg); }
+  50% { transform: rotate(-12deg); }
 }
 @keyframes ear-wiggle-right {
   0%, 100% { transform: rotate(0deg); }
-  50% { transform: rotate(8deg); }
+  50% { transform: rotate(12deg); }
+}
+@keyframes arm-wave-left {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(20deg); }
+}
+@keyframes arm-wave-right {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-25deg); }
 }
 @keyframes bunny-float {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
+  50% { transform: translateY(-12px); }
 }
 @keyframes eye-glow {
   0%, 100% { opacity: 0.8; transform: scale(1); }
   50% { opacity: 1; transform: scale(1.15); }
 }
+@keyframes flame-pulse {
+  0%, 100% { transform: scaleY(1) scaleX(1); opacity: 0.85; }
+  50% { transform: scaleY(1.4) scaleX(1.15); opacity: 1; }
+}
 
 .animate-ear-left {
-  animation: ear-wiggle-left 2s ease-in-out infinite;
+  animation: ear-wiggle-left 1.8s ease-in-out infinite;
 }
 .animate-ear-right {
-  animation: ear-wiggle-right 2.2s ease-in-out infinite;
+  animation: ear-wiggle-right 2s ease-in-out infinite;
+}
+.animate-arm-left {
+  animation: arm-wave-left 2.2s ease-in-out infinite;
+}
+.animate-arm-right {
+  animation: arm-wave-right 2s ease-in-out infinite;
 }
 .animate-bunny-float {
-  animation: bunny-float 3.5s ease-in-out infinite;
+  animation: bunny-float 3s ease-in-out infinite;
 }
 .animate-eye-glow {
-  animation: eye-glow 1.5s ease-in-out infinite;
+  animation: eye-glow 1.2s ease-in-out infinite;
   transform-origin: center;
+}
+.animate-flame {
+  animation: flame-pulse 0.3s ease-in-out infinite;
 }
 
 /* Map Pin glow animations */
