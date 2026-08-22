@@ -105,6 +105,215 @@ const MedicalKnowledge = {
   }
 };
 
+// Premium 3D Rotating About Flashcards Carousel
+const AboutCarousel = () => {
+  const [activeIndex, setActiveIndex] = useState(4); // Start centered at index 4 (5th card)
+  const [isHovered, setIsHovered] = useState(false);
+
+  useEffect(() => {
+    if (isHovered) return;
+    const interval = setInterval(() => {
+      setActiveIndex(prev => (prev === 9 ? 0 : prev + 1));
+    }, 1500); // Rotates every 1.5 seconds
+    return () => clearInterval(interval);
+  }, [isHovered]);
+
+  const cards = [
+    {
+      id: "01",
+      title: "Clinically Calibrated",
+      tagline: "ALGORITHM",
+      desc: "Designed to bridge the gap between patient concerns and professional triage using logical symptoms pathing. The system processes inputs against structured clinical matrices to guide users toward the most appropriate care level.",
+      color: "from-teal-500/5 to-teal-500/15",
+      accent: "text-[#0f766e] border-[#0f766e]/10 bg-[#0f766e]/5"
+    },
+    {
+      id: "02",
+      title: "Secure Health Sandbox",
+      tagline: "PRIVACY",
+      desc: "Client-side encryption and locally stored records. We align with industry standards to keep data private. Patient information is compiled directly inside your local environment, ensuring that diagnostic insights remain entirely under your ownership.",
+      color: "from-emerald-500/5 to-emerald-500/15",
+      accent: "text-emerald-600 border-emerald-500/15 bg-emerald-500/5"
+    },
+    {
+      id: "03",
+      title: "Interactive Care Mascot",
+      tagline: "EXPERIENCE",
+      desc: "An intuitive clinical mascot that reacts dynamically to UI state. Voice guidance loops keep users engaged. By providing visual prompts and vocal indicators, the mascot simplifies navigation and reduces patient anxiety during triage.",
+      color: "from-indigo-500/5 to-indigo-500/15",
+      accent: "text-indigo-600 border-indigo-500/15 bg-indigo-500/5"
+    },
+    {
+      id: "04",
+      title: "Biomarker Scanning",
+      tagline: "COMPUTER VISION",
+      desc: "Instantly parse blood panels and clinical lab reports using computer vision to flag out-of-range indicators. The OCR system reads structured metrics and maps them to normal medical intervals to highlight anomalies safely.",
+      color: "from-rose-500/5 to-rose-500/15",
+      accent: "text-rose-600 border-rose-500/15 bg-rose-500/5"
+    },
+    {
+      id: "05",
+      title: "Verified Referrals",
+      tagline: "REFERRALS",
+      desc: "Direct integration with accredited city clinics and diagnostic lab networks. Find verified local specialists in Greater Noida with matching coordinates, enabling immediate scheduling and direct communication.",
+      color: "from-amber-500/5 to-amber-500/15",
+      accent: "text-amber-600 border-amber-500/15 bg-amber-500/5"
+    },
+    {
+      id: "06",
+      title: "Cognitive AI Engine",
+      tagline: "ANALYSIS",
+      desc: "Extract clinical symptoms severity, affected anatomical systems, and priority flags via advanced AI parsing. The cognitive parsing module flags critical concerns and helps categorize patient records for efficient triage.",
+      color: "from-violet-500/5 to-violet-500/15",
+      accent: "text-violet-600 border-violet-500/15 bg-violet-500/5"
+    },
+    {
+      id: "07",
+      title: "Emergency Desk SOS",
+      tagline: "SAFETY DESK",
+      desc: "Trigger emergency coordinates and broadcast patient info to emergency links on critical severity classification. The instant safety desk ensures family links and nearby care networks receive real-time notifications.",
+      color: "from-red-500/5 to-red-500/15",
+      accent: "text-red-600 border-red-500/15 bg-red-500/5"
+    },
+    {
+      id: "08",
+      title: "Interactive Mapping",
+      tagline: "FACILITIES MAP",
+      desc: "Geospatial search of verified health practitioners, clinics, and laboratories matching diagnostic coordinates. Visual markers display clinic status, working hours, and specialist credentials for easy local selection.",
+      color: "from-cyan-500/5 to-cyan-500/15",
+      accent: "text-cyan-600 border-cyan-500/15 bg-cyan-500/5"
+    },
+    {
+      id: "09",
+      title: "Local Records Vault",
+      tagline: "ENCRYPTION KEYS",
+      desc: "Secure storage sandbox for client history files, allowing user-authorized records downloads or wipes. Decryption keys are stored strictly client-side, giving you absolute authority over when your history is stored or erased.",
+      color: "from-sky-500/5 to-sky-500/15",
+      accent: "text-sky-600 border-sky-500/15 bg-sky-500/5"
+    },
+    {
+      id: "10",
+      title: "Diagnostic Trackers",
+      tagline: "RECORDS",
+      desc: "Keep history logs of all clinical triage outputs and test reports analysis for comprehensive health timelines. The records interface tracks trends in biomarkers, symptom occurrences, and clinic visits over time.",
+      color: "from-fuchsia-500/5 to-fuchsia-500/15",
+      accent: "text-fuchsia-600 border-fuchsia-500/15 bg-fuchsia-500/5"
+    }
+  ];
+
+  const handlePrev = () => {
+    setActiveIndex(prev => (prev === 0 ? cards.length - 1 : prev - 1));
+  };
+
+  const handleNext = () => {
+    setActiveIndex(prev => (prev === cards.length - 1 ? 0 : prev + 1));
+  };
+
+  return (
+    <div className="w-full flex flex-col items-center py-10 relative z-20 overflow-visible">
+      {/* Dynamic Background Spotlight */}
+      <div className="absolute inset-0 flex justify-center items-center pointer-events-none z-0">
+        <div className="w-[500px] h-[500px] rounded-full blur-[140px] transition-all duration-700 bg-emerald-500/5" />
+      </div>
+
+      {/* 3D Perspective Card Slider Wrapper */}
+      <div 
+        className="relative w-full max-w-7xl h-[300px] flex items-center justify-center overflow-visible z-10 px-4"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        {cards.map((card, idx) => {
+          const diff = idx - activeIndex;
+          const isActive = idx === activeIndex;
+          
+          // Calculate 3D perspective translations
+          const translateX = diff * 320;
+          const scale = 1 - Math.abs(diff) * 0.1;
+          const translateZ = -Math.abs(diff) * 100;
+          const rotateY = diff * -15;
+          const opacity = 1 - Math.abs(diff) * 0.28;
+          
+          return (
+            <div
+              key={card.id}
+              onClick={() => setActiveIndex(idx)}
+              className="absolute w-[285px] h-[260px] rounded-[32px] p-6 flex flex-col justify-start gap-3 transition-all duration-700 ease-out cursor-pointer shadow-xl select-none"
+              style={{
+                background: `linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(244, 252, 251, 0.9) 100%)`,
+                border: isActive ? '2.5px solid #0f766e' : '1px solid rgba(15, 118, 110, 0.15)',
+                boxShadow: isActive 
+                  ? '0 20px 40px rgba(15, 118, 110, 0.15), 0 0 20px rgba(15, 118, 110, 0.08)'
+                  : '0 8px 24px rgba(0, 0, 0, 0.03)',
+                transform: `perspective(1000px) translateX(${translateX}px) translateZ(${translateZ}px) rotateY(${rotateY}deg) scale(${scale})`,
+                opacity: opacity >= 0 ? opacity : 0,
+                zIndex: 50 - Math.abs(diff),
+                backdropFilter: 'blur(20px)',
+                pointerEvents: Math.abs(diff) > 2 ? 'none' : 'auto'
+              }}
+            >
+              {/* Card Top Details */}
+              <div className="flex flex-col gap-1.5 text-left">
+                <div className="flex justify-between items-center">
+                  <span className={`text-[8px] font-mono font-bold tracking-widest px-2 py-0.5 border rounded-full uppercase ${card.accent}`}>
+                    {card.tagline}
+                  </span>
+                </div>
+                <h3 className="font-serif text-base font-bold text-[#0f766e] mt-1 leading-snug">
+                  {card.title}
+                </h3>
+              </div>
+
+              {/* Card Bottom Description */}
+              <p className="text-[11px] text-slate-600 leading-relaxed font-sans text-left">
+                {card.desc}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Carousel Navigation and Indicators */}
+      <div className="w-full max-w-xl flex items-center justify-between mt-8 z-20 px-6">
+        {/* Caption Info Left */}
+        <div className="text-left">
+          <span className="text-[9px] font-mono text-brand-textMuted tracking-wider uppercase block">Active Principle</span>
+          <span className="font-mono text-xs font-black text-[#0f766e] tracking-tight">
+            {cards[activeIndex].title}
+          </span>
+        </div>
+
+        {/* Indicators Dots and Arrows Right */}
+        <div className="flex items-center gap-4">
+          <div className="flex gap-1">
+            {cards.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => setActiveIndex(idx)}
+                className={`h-1.5 rounded-full transition-all duration-300 ${idx === activeIndex ? 'w-5 bg-[#0f766e]' : 'w-1.5 bg-[#0f766e]/20'}`}
+              />
+            ))}
+          </div>
+
+          <div className="flex gap-1.5">
+            <button
+              onClick={handlePrev}
+              className="w-8 h-8 rounded-full bg-white border border-[#0f766e]/20 flex items-center justify-center text-[#0f766e] hover:bg-[#0f766e]/10 transition-all active:scale-95 shadow-sm text-xs font-bold"
+            >
+              ←
+            </button>
+            <button
+              onClick={handleNext}
+              className="w-8 h-8 rounded-full bg-white border border-[#0f766e]/20 flex items-center justify-center text-[#0f766e] hover:bg-[#0f766e]/10 transition-all active:scale-95 shadow-sm text-xs font-bold"
+            >
+              →
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function App() {
   // Page routing
   const [activePage, setActivePage] = useState('landing');
