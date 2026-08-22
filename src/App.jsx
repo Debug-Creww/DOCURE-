@@ -2,22 +2,17 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   ArrowLeft, Activity, LineChart, BarChart3, ClipboardList, 
   Settings, UserCog, User, MapPin, X, Bot, Bell, 
-  Phone, Trash2, Send, Mic, Volume2, VolumeX, ShieldAlert, Menu,
-  Mail, ShieldCheck, Globe, Compass, Pill, Navigation, ExternalLink, RefreshCw,
-  LocateFixed, Building2, Stethoscope, TestTube2, PhoneCall, Navigation2
+  Phone, Trash2, Send, Mic, Volume2, VolumeX, ShieldAlert,
+  Pill, Home, UploadCloud, FileText, CheckCircle2, AlertTriangle,
+  Heart, Calendar, Plus, RefreshCw, Sparkles, TrendingUp, ShieldCheck,
+  Thermometer, Check
 } from 'lucide-react';
 import MedicineReminder from './components/MedicineReminder/MedicineReminder';
 import InAppToast from './components/MedicineReminder/InAppToast';
-import MedicalRadarNode from './components/MedicalRadar/MedicalRadarNode';
-import LabReportAnalyzerNode from './components/LabReport/LabReportAnalyzerNode';
+import HealthAnalytics from './components/HealthAnalytics/HealthAnalytics';
 import { startNotificationScheduler } from './services/notificationScheduler';
 import { getDefaultUserId } from './firebase';
 import { subscribeReminders, addReminder, deleteReminder } from './services/firestoreReminders';
-import { 
-  getUserLocation, 
-  reverseGeocodeCity, 
-  fetchNearbyMedicalPlaces 
-} from './services/medicalPlacesService';
 
 // Maps coordinates
 const CityCoordinates = {
@@ -103,415 +98,10 @@ const MedicalKnowledge = {
   }
 };
 
-// Transparent WebM video player with auto-unmute and no button overlays
-const ChromaKeyVideo = ({ src }) => {
-  const videoRef = useRef(null);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    // Attempt to play unmuted on load
-    video.muted = false;
-    const playPromise = video.play();
-
-    if (playPromise !== undefined) {
-      playPromise.catch(() => {
-        // Autoplay with audio blocked: fallback to muted autoplay so she keeps moving
-        video.muted = true;
-        video.play().catch(() => {});
-      });
-    }
-
-    // Unmute on first user interaction anywhere on the document
-    const handleUserInteraction = () => {
-      if (videoRef.current) {
-        videoRef.current.muted = false;
-        videoRef.current.play().catch(() => {});
-      }
-      window.removeEventListener('click', handleUserInteraction);
-      window.removeEventListener('touchstart', handleUserInteraction);
-      window.removeEventListener('keydown', handleUserInteraction);
-    };
-
-    window.addEventListener('click', handleUserInteraction);
-    window.addEventListener('touchstart', handleUserInteraction);
-    window.addEventListener('keydown', handleUserInteraction);
-
-    return () => {
-      window.removeEventListener('click', handleUserInteraction);
-      window.removeEventListener('touchstart', handleUserInteraction);
-      window.removeEventListener('keydown', handleUserInteraction);
-    };
-  }, [src]);
-
-  return (
-    <div className="w-full h-full relative flex items-center justify-center overflow-visible">
-      <video
-        ref={videoRef}
-        src={src}
-        autoPlay
-        loop
-        playsInline
-        className="w-full h-full object-contain overflow-visible filter contrast-[1.02]"
-        style={{ mixBlendMode: 'multiply' }}
-      />
-    </div>
-  );
-};
-
-// Premium 3D Rotating About Flashcards Carousel
-const AboutCarousel = () => {
-  const [activeIndex, setActiveIndex] = React.useState(4); // Start centered at index 4 (5th card)
-  const [isHovered, setIsHovered] = React.useState(false);
-
-  React.useEffect(() => {
-    if (isHovered) return;
-    const interval = setInterval(() => {
-      setActiveIndex(prev => (prev === 9 ? 0 : prev + 1));
-    }, 1000); // Changes every 1 second
-    return () => clearInterval(interval);
-  }, [isHovered]);
-
-  const cards = [
-    {
-      id: "01",
-      title: "Clinically Calibrated",
-      tagline: "ALGORITHM",
-      desc: "Designed to bridge the gap between patient concerns and professional triage using logical symptoms pathing. The system processes inputs against structured clinical matrices to guide users toward the most appropriate care level.",
-      color: "from-teal-500/5 to-teal-500/15",
-      accent: "text-[#0f766e] border-[#0f766e]/10 bg-[#0f766e]/5"
-    },
-    {
-      id: "02",
-      title: "Secure Health Sandbox",
-      tagline: "PRIVACY",
-      desc: "Client-side encryption and locally stored records. We align with industry standards to keep data private. Patient information is compiled directly inside your local environment, ensuring that diagnostic insights remain entirely under your ownership.",
-      color: "from-emerald-500/5 to-emerald-500/15",
-      accent: "text-emerald-600 border-emerald-500/15 bg-emerald-500/5"
-    },
-    {
-      id: "03",
-      title: "Interactive Care Mascot",
-      tagline: "EXPERIENCE",
-      desc: "An intuitive clinical mascot that reacts dynamically to UI state. Voice guidance loops keep users engaged. By providing visual prompts and vocal indicators, the mascot simplifies navigation and reduces patient anxiety during triage.",
-      color: "from-indigo-500/5 to-indigo-500/15",
-      accent: "text-indigo-600 border-indigo-500/15 bg-indigo-500/5"
-    },
-    {
-      id: "04",
-      title: "Biomarker Scanning",
-      tagline: "COMPUTER VISION",
-      desc: "Instantly parse blood panels and clinical lab reports using computer vision to flag out-of-range indicators. The OCR system reads structured metrics and maps them to normal medical intervals to highlight anomalies safely.",
-      color: "from-rose-500/5 to-rose-500/15",
-      accent: "text-rose-600 border-rose-500/15 bg-rose-500/5"
-    },
-    {
-      id: "05",
-      title: "Verified Referrals",
-      tagline: "REFERRALS",
-      desc: "Direct integration with accredited city clinics and diagnostic lab networks. Find verified local specialists in Greater Noida with matching coordinates, enabling immediate scheduling and direct communication.",
-      color: "from-amber-500/5 to-amber-500/15",
-      accent: "text-amber-600 border-amber-500/15 bg-amber-500/5"
-    },
-    {
-      id: "06",
-      title: "Cognitive AI Engine",
-      tagline: "ANALYSIS",
-      desc: "Extract clinical symptoms severity, affected anatomical systems, and priority flags via advanced AI parsing. The cognitive parsing module flags critical concerns and helps categorize patient records for efficient triage.",
-      color: "from-violet-500/5 to-violet-500/15",
-      accent: "text-violet-600 border-violet-500/15 bg-violet-500/5"
-    },
-    {
-      id: "07",
-      title: "Emergency Desk SOS",
-      tagline: "SAFETY DESK",
-      desc: "Trigger emergency coordinates and broadcast patient info to emergency links on critical severity classification. The instant safety desk ensures family links and nearby care networks receive real-time notifications.",
-      color: "from-red-500/5 to-red-500/15",
-      accent: "text-red-600 border-red-500/15 bg-red-500/5"
-    },
-    {
-      id: "08",
-      title: "Interactive Mapping",
-      tagline: "FACILITIES MAP",
-      desc: "Geospatial search of verified health practitioners, clinics, and laboratories matching diagnostic coordinates. Visual markers display clinic status, working hours, and specialist credentials for easy local selection.",
-      color: "from-cyan-500/5 to-cyan-500/15",
-      accent: "text-cyan-600 border-cyan-500/15 bg-cyan-500/5"
-    },
-    {
-      id: "09",
-      title: "Local Records Vault",
-      tagline: "ENCRYPTION KEYS",
-      desc: "Secure storage sandbox for client history files, allowing user-authorized records downloads or wipes. Decryption keys are stored strictly client-side, giving you absolute authority over when your history is stored or erased.",
-      color: "from-sky-500/5 to-sky-500/15",
-      accent: "text-sky-600 border-sky-500/15 bg-sky-500/5"
-    },
-    {
-      id: "10",
-      title: "Diagnostic Trackers",
-      tagline: "RECORDS",
-      desc: "Keep history logs of all clinical triage outputs and test reports analysis for comprehensive health timelines. The records interface tracks trends in biomarkers, symptom occurrences, and clinic visits over time.",
-      color: "from-fuchsia-500/5 to-fuchsia-500/15",
-      accent: "text-fuchsia-600 border-fuchsia-500/15 bg-fuchsia-500/5"
-    }
-  ];
-
-  const handlePrev = () => {
-    setActiveIndex(prev => (prev === 0 ? cards.length - 1 : prev - 1));
-  };
-
-  const handleNext = () => {
-    setActiveIndex(prev => (prev === cards.length - 1 ? 0 : prev + 1));
-  };
-
-  return (
-    <div className="w-full flex flex-col items-center py-20 relative z-20 overflow-visible mt-8">
-      {/* Dynamic Background Spotlight */}
-      <div className="absolute inset-0 flex justify-center items-center pointer-events-none z-0">
-        <div className="w-[500px] h-[500px] rounded-full blur-[140px] transition-all duration-700 bg-emerald-500/5" />
-      </div>
-
-      {/* Title */}
-      <div className="text-center mb-16 relative z-10">
-        <span className="text-[10px] font-mono font-bold tracking-widest text-[#0f766e]/80 uppercase px-3 py-1 bg-[#0f766e]/5 border border-[#0f766e]/10 rounded-full">
-          Selected Pillars
-        </span>
-        <h2 className="font-serif text-4xl font-extrabold text-brand-textDark mt-3 tracking-tight">
-          Selected principles, <span className="text-brand-accent italic">framed in light</span>
-        </h2>
-      </div>
-
-      {/* 3D Perspective Card Slider Wrapper (Full width max-w-7xl, height adjusted to 300px) */}
-      <div 
-        className="relative w-full max-w-7xl h-[300px] flex items-center justify-center overflow-visible z-10 px-4"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
-        {cards.map((card, idx) => {
-          const diff = idx - activeIndex;
-          const isActive = idx === activeIndex;
-          
-          // Calculate 3D perspective translations with expanded spacing (320px separation)
-          const translateX = diff * 320; // Spaced further apart horizontally
-          const scale = 1 - Math.abs(diff) * 0.1; // scale step
-          const translateZ = -Math.abs(diff) * 100; // depth translation
-          const rotateY = diff * -15; // 3D Y-axis angle (subtle curved layout)
-          const opacity = 1 - Math.abs(diff) * 0.28; // keeps neighboring cards visible
-          
-          return (
-            <div
-              key={card.id}
-              onClick={() => setActiveIndex(idx)}
-              className="absolute w-[285px] h-[260px] rounded-[32px] p-6 flex flex-col justify-start gap-4 transition-all duration-700 ease-out cursor-pointer shadow-2xl select-none animate-card-glow"
-              style={{
-                background: `linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(244, 252, 251, 0.8) 100%)`,
-                border: isActive ? '2.5px solid #0f766e' : '1px solid rgba(15, 118, 110, 0.15)',
-                boxShadow: isActive 
-                  ? '0 20px 40px rgba(15, 118, 110, 0.15), 0 0 20px rgba(15, 118, 110, 0.08)'
-                  : '0 8px 24px rgba(0, 0, 0, 0.03)',
-                transform: `perspective(1000px) translateX(${translateX}px) translateZ(${translateZ}px) rotateY(${rotateY}deg) scale(${scale})`,
-                opacity: opacity >= 0 ? opacity : 0,
-                zIndex: 50 - Math.abs(diff),
-                backdropFilter: 'blur(20px)',
-                pointerEvents: Math.abs(diff) > 2 ? 'none' : 'auto'
-              }}
-            >
-              {/* Card Top Details */}
-              <div className="flex flex-col gap-2">
-                <div className="flex justify-between items-center">
-                  <span className={`text-[8px] font-mono font-bold tracking-widest px-2 py-0.5 border rounded-full uppercase ${card.accent}`}>
-                    {card.tagline}
-                  </span>
-                </div>
-                <h3 className="font-serif text-lg font-bold text-[#0f766e] mt-3 leading-snug">
-                  {card.title}
-                </h3>
-              </div>
-
-              {/* Card Bottom Description */}
-              <p className="text-[12px] text-slate-600 leading-relaxed font-sans">
-                {card.desc}
-              </p>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Carousel Navigation, Caption and Index Indicators */}
-      <div className="w-full max-w-xl flex items-center justify-between mt-12 z-20 px-6">
-        {/* Caption Info Left */}
-        <div className="text-left">
-          <span className="text-[9px] font-mono text-brand-textMuted tracking-wider uppercase block">Active Principle</span>
-          <span className="font-mono text-sm font-black text-[#0f766e] tracking-tight transition-all duration-300">
-            {cards[activeIndex].title}
-          </span>
-        </div>
-
-        {/* Indicators Dots and Arrows Right */}
-        <div className="flex items-center gap-6">
-          <div className="flex gap-1.5">
-            {cards.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => setActiveIndex(idx)}
-                className={`h-1.5 rounded-full transition-all duration-300 ${idx === activeIndex ? 'w-6 bg-[#0f766e]' : 'w-1.5 bg-[#0f766e]/20'}`}
-              />
-            ))}
-          </div>
-
-          <div className="flex gap-2">
-            <button
-              onClick={handlePrev}
-              className="w-9 h-9 rounded-full bg-white border border-[#0f766e]/15 flex items-center justify-center text-[#0f766e] hover:bg-[#0f766e]/5 transition-all active:scale-95 shadow-sm text-sm"
-            >
-              ←
-            </button>
-            <button
-              onClick={handleNext}
-              className="w-9 h-9 rounded-full bg-white border border-[#0f766e]/15 flex items-center justify-center text-[#0f766e] hover:bg-[#0f766e]/5 transition-all active:scale-95 shadow-sm text-sm"
-            >
-              →
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Premium Landing Multi-column Footer
-const LandingFooter = ({ setActivePage, setActiveTab }) => {
-  return (
-    <footer className="w-full bg-gradient-to-b from-transparent to-[#0f766e]/[0.03] border-t border-[#0f766e]/15 py-20 px-10 relative z-20">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 text-left">
-        {/* Brand Column */}
-        <div className="flex flex-col gap-5">
-          <div className="flex items-center gap-3">
-            <img src="assets/logo_original.png?v=5" alt="DOCURE Logo" className="h-9 w-auto mix-blend-multiply hover:scale-105 transition-transform duration-300" />
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-[22px] font-black tracking-[0.18em] text-[#0f766e]">DOCURE</span>
-              <span className="text-[8px] font-mono font-bold text-emerald-600 bg-emerald-50 border border-emerald-200/50 px-1.5 py-0.5 rounded-full uppercase leading-none">v2.0</span>
-            </div>
-          </div>
-          <p className="text-[11px] text-brand-textMuted leading-relaxed max-w-xs">
-            Advanced clinical intelligence interface built on locally encrypted sandboxes. Providing diagnostic triage clarity, biometric parsing, and specialized care routing.
-          </p>
-        </div>
-
-        {/* Column 2: Platform Links */}
-        <div>
-          <h4 className="font-mono text-xs font-extrabold text-[#0f766e] tracking-[0.15em] uppercase mb-5 relative after:content-[''] after:absolute after:-bottom-1.5 after:left-0 after:w-5 after:h-[1.5px] after:bg-[#0f766e]/30">Platform</h4>
-          <ul className="flex flex-col gap-3 text-[11px] text-brand-textMuted font-sans">
-            <li>
-              <button 
-                onClick={() => { setActivePage('dashboard'); setActiveTab('reduce'); }} 
-                className="flex items-center gap-2 hover:text-[#0f766e] hover:translate-x-1 transition-all duration-300 text-left group"
-              >
-                <span className="w-1 h-1 rounded-full bg-[#0f766e]/30 group-hover:bg-[#0f766e] transition-colors" />
-                <span>Symptom Chat (Triage Desk)</span>
-              </button>
-            </li>
-            <li>
-              <button 
-                onClick={() => { setActivePage('dashboard'); setActiveTab('maps'); }} 
-                className="flex items-center gap-2 hover:text-[#0f766e] hover:translate-x-1 transition-all duration-300 text-left group"
-              >
-                <span className="w-1 h-1 rounded-full bg-[#0f766e]/30 group-hover:bg-[#0f766e] transition-colors" />
-                <span>Clinic & Laboratory Directory</span>
-              </button>
-            </li>
-            <li>
-              <button 
-                onClick={() => { setActivePage('dashboard'); setActiveTab('report'); }} 
-                className="flex items-center gap-2 hover:text-[#0f766e] hover:translate-x-1 transition-all duration-300 text-left group"
-              >
-                <span className="w-1 h-1 rounded-full bg-[#0f766e]/30 group-hover:bg-[#0f766e] transition-colors" />
-                <span>Blood Panel Scanner</span>
-              </button>
-            </li>
-            <li>
-              <button 
-                onClick={() => { setActivePage('dashboard'); setActiveTab('settings'); }} 
-                className="flex items-center gap-2 hover:text-[#0f766e] hover:translate-x-1 transition-all duration-300 text-left group"
-              >
-                <span className="w-1 h-1 rounded-full bg-[#0f766e]/30 group-hover:bg-[#0f766e] transition-colors" />
-                <span>Patient Health Records</span>
-              </button>
-            </li>
-          </ul>
-        </div>
-
-        {/* Column 3: Contact & Support */}
-        <div>
-          <h4 className="font-mono text-xs font-extrabold text-[#0f766e] tracking-[0.15em] uppercase mb-5 relative after:content-[''] after:absolute after:-bottom-1.5 after:left-0 after:w-5 after:h-[1.5px] after:bg-[#0f766e]/30">Contact & Support</h4>
-          <ul className="flex flex-col gap-3 text-[11px] text-brand-textMuted font-sans">
-            <li className="flex items-start gap-2.5">
-              <Mail className="w-4 h-4 text-[#0f766e]/70 shrink-0 mt-0.5" />
-              <div>
-                <span className="text-brand-textDark font-semibold block text-[10px] uppercase tracking-wider">NCR Desk</span>
-                <span className="text-[#0f766e]/85 font-mono">contact@docure.in</span>
-              </div>
-            </li>
-            <li className="flex items-start gap-2.5">
-              <Phone className="w-4 h-4 text-[#0f766e]/70 shrink-0 mt-0.5" />
-              <div>
-                <span className="text-brand-textDark font-semibold block text-[10px] uppercase tracking-wider">Emergency SOS Desk</span>
-                <span className="text-rose-600 font-mono font-medium">112</span>
-              </div>
-            </li>
-            <li className="flex items-start gap-2.5">
-              <Globe className="w-4 h-4 text-[#0f766e]/70 shrink-0 mt-0.5" />
-              <a href="#" className="hover:text-[#0f766e] hover:translate-x-0.5 transition-all duration-300">Clinical Safety Protocols</a>
-            </li>
-          </ul>
-        </div>
-
-        {/* Column 4: Compliance Certificates */}
-        <div>
-          <h4 className="font-mono text-xs font-extrabold text-[#0f766e] tracking-[0.15em] uppercase mb-5 relative after:content-[''] after:absolute after:-bottom-1.5 after:left-0 after:w-5 after:h-[1.5px] after:bg-[#0f766e]/30">Compliance</h4>
-          <ul className="flex flex-col gap-2.5 text-[11px] text-brand-textMuted font-sans">
-            <li className="flex items-center gap-2 hover:text-[#0f766e] transition-colors cursor-default">
-              <ShieldCheck className="w-4 h-4 text-[#0f766e]/80 shrink-0" />
-              <span>HIPAA Aligned Sandbox</span>
-            </li>
-            <li className="flex items-center gap-2 hover:text-[#0f766e] transition-colors cursor-default">
-              <ShieldCheck className="w-4 h-4 text-[#0f766e]/80 shrink-0" />
-              <span>Client-Side Data Sanitization</span>
-            </li>
-            <li className="flex items-center gap-2 hover:text-[#0f766e] transition-colors cursor-default">
-              <ShieldCheck className="w-4 h-4 text-[#0f766e]/80 shrink-0" />
-              <span>ISO 27001 Security Standard</span>
-            </li>
-            <li className="flex items-center gap-2 hover:text-[#0f766e] transition-colors cursor-default">
-              <ShieldCheck className="w-4 h-4 text-[#0f766e]/80 shrink-0" />
-              <span>Verified Local Clinic Network</span>
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      {/* Divider */}
-      <div className="max-w-7xl mx-auto h-[1px] bg-[#0f766e]/10 my-8" />
-
-      {/* Copyright row */}
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] text-brand-textMuted font-mono">
-        <span>© 2026 DOCURE Health Technologies Inc. All rights reserved.</span>
-        <div className="flex gap-4">
-          <a href="#" className="hover:text-[#0f766e] hover:underline transition-all">Privacy Policy</a>
-          <span>•</span>
-          <a href="#" className="hover:text-[#0f766e] hover:underline transition-all">Terms of Use</a>
-          <span>•</span>
-          <a href="#" className="hover:text-[#0f766e] hover:underline transition-all">Security Standards</a>
-        </div>
-      </div>
-    </footer>
-  );
-};
-
 export default function App() {
   // Page routing
   const [activePage, setActivePage] = useState('landing');
-  const [activeTab, setActiveTab] = useState('reduce');
+  const [activeTab, setActiveTab] = useState('chatbot');
   const [currentUserId, setCurrentUserId] = useState(getDefaultUserId());
   const [liveReminders, setLiveReminders] = useState([]);
 
@@ -529,7 +119,6 @@ export default function App() {
   
   // Profile settings state
   const [profileModalOpen, setProfileModalOpen] = useState(false);
-  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [profile, setProfile] = useState({
     name: "Anushka Pandey",
     age: 21,
@@ -559,20 +148,11 @@ export default function App() {
   // Wellness Heartbeat params
   const [risk, setRisk] = useState('Normal');
   const [pulse, setPulse] = useState(72);
-  const ekgCanvasRef = useRef(null);
 
-  // Map settings & Live Geolocation State
+  // Map settings
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markersGroupRef = useRef(null);
-  const userMarkerRef = useRef(null);
-  const placesMarkersMapRef = useRef(new Map());
-
-  const [userCoords, setUserCoords] = useState({ lat: 28.4744, lng: 77.5030 }); // Default Greater Noida / NCR
-  const [nearbyPlaces, setNearbyPlaces] = useState([]);
-  const [selectedPlaceCategory, setSelectedPlaceCategory] = useState('all'); // 'all' | 'hospital' | 'doctor' | 'lab' | 'pharmacy'
-  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
-  const [locationAddress, setLocationAddress] = useState('Greater Noida, UP');
 
   // File upload indicator state
   const [uploadingReport, setUploadingReport] = useState(false);
@@ -649,213 +229,72 @@ export default function App() {
     window.speechSynthesis.speak(utterance);
   };
 
-  // Heartbeat canvas animation loop
-  useEffect(() => {
-    if (!ekgCanvasRef.current) return;
-    const canvas = ekgCanvasRef.current;
-    const ctx = canvas.getContext('2d');
-    let ekgTraceX = 0;
-    let frameId;
-    
-    const render = () => {
-      ctx.fillStyle = "rgba(15, 23, 42, 0.15)";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      let colorHex = "#10b981";
-      if (risk === "SOS") colorHex = "#f43f5e";
-      else if (risk === "Elevated") colorHex = "#8b5cf6";
-      
-      ctx.strokeStyle = colorHex;
-      ctx.lineWidth = 1.8;
-      ctx.shadowBlur = 4;
-      ctx.shadowColor = colorHex;
-      
-      ctx.beginPath();
-      ctx.moveTo(ekgTraceX - 2, canvas.height / 2);
-      
-      let y = canvas.height / 2;
-      let cycleWidth = (risk === "SOS") ? 40 : ((risk === "Elevated") ? 60 : 80);
-      let pos = ekgTraceX % cycleWidth;
-      
-      if (pos > 10 && pos < 13) y = canvas.height / 2 - 3;
-      else if (pos >= 15 && pos < 17) y = canvas.height / 2 + 5;
-      else if (pos >= 17 && pos < 20) y = 4;
-      else if (pos >= 20 && pos < 22) y = canvas.height - 4;
-      else if (pos >= 24 && pos < 28) y = canvas.height / 2 - 5;
-      
-      ctx.lineTo(ekgTraceX, y);
-      ctx.stroke();
-      
-      let speed = (risk === "SOS") ? 2.5 : ((risk === "Elevated") ? 1.7 : 1.2);
-      ekgTraceX += speed;
-      if (ekgTraceX > canvas.width) {
-        ekgTraceX = 0;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-      }
-      
-      frameId = requestAnimationFrame(render);
-    };
-    
-    render();
-    return () => cancelAnimationFrame(frameId);
-  }, [risk]);
-
-  // Plot color-coded markers for places on Leaflet Map
-  const plotPlacesOnMap = (places, userLocation = null) => {
-    if (!window.L || !mapInstanceRef.current || !markersGroupRef.current) return;
-    markersGroupRef.current.clearLayers();
-    placesMarkersMapRef.current.clear();
-
-    const uLat = userLocation?.lat || userCoords.lat;
-    const uLng = userLocation?.lng || userCoords.lng;
-
-    // Plot User's live location radar pin
-    if (uLat && uLng) {
-      if (userMarkerRef.current) {
-        try { userMarkerRef.current.remove(); } catch(e) {}
-      }
-      const userIcon = window.L.divIcon({
-        className: 'user-live-pin',
-        html: '<div style="position:relative; width:20px; height:20px; display:flex; align-items:center; justify-content:center;"><div style="position:absolute; width:20px; height:20px; border-radius:50%; background:#2563eb; opacity:0.35; animation:pulse-status 1.5s infinite;"></div><div style="width:12px; height:12px; border-radius:50%; background:#2563eb; border:2.5px solid white; box-shadow:0 0 10px rgba(37,99,235,0.9);"></div></div>',
-        iconSize: [20, 20],
-        iconAnchor: [10, 10]
-      });
-      userMarkerRef.current = window.L.marker([uLat, uLng], { icon: userIcon })
-        .bindPopup(`<div style="font-family:sans-serif; font-size:11px;"><strong>📍 Your Current Location</strong><br><span style="color:#64748b;">${locationAddress || 'Detected GPS'}</span></div>`)
-        .addTo(mapInstanceRef.current);
-    }
-
-    // Plot each nearby doctor/hospital/lab/pharmacy pin
-    places.forEach((place) => {
-      if (!place.lat || !place.lng) return;
-
-      let bgColor = '#0f766e';
-      let shadowColor = 'rgba(15,118,110,0.6)';
-      let pulseColor = 'rgba(15,118,110,0.25)';
-      let emoji = '🏥';
-      let tagLabel = 'HOSPITAL';
-
-      if (place.type === 'doctor') {
-        bgColor = '#2563eb';
-        shadowColor = 'rgba(37,99,235,0.6)';
-        pulseColor = 'rgba(37,99,235,0.25)';
-        emoji = '👨‍⚕️';
-        tagLabel = 'DOCTOR / CLINIC';
-      } else if (place.type === 'lab') {
-        bgColor = '#8b5cf6';
-        shadowColor = 'rgba(139,92,246,0.6)';
-        pulseColor = 'rgba(139,92,246,0.25)';
-        emoji = '🔬';
-        tagLabel = 'DIAGNOSTIC LAB';
-      } else if (place.type === 'pharmacy') {
-        bgColor = '#10b981';
-        shadowColor = 'rgba(16,185,129,0.6)';
-        pulseColor = 'rgba(16,185,129,0.25)';
-        emoji = '💊';
-        tagLabel = 'PHARMACY';
-      }
-
-      const iconHtml = `
-        <div style="position:relative; width:32px; height:32px; display:flex; align-items:center; justify-content:center; cursor:pointer;" title="${place.name}">
-          <div style="position:absolute; width:32px; height:32px; border-radius:50%; background:${pulseColor}; animation:pulse-status 2s infinite;"></div>
-          <div style="width:26px; height:26px; border-radius:50%; background:${bgColor}; border:2.5px solid white; box-shadow:0 3px 10px ${shadowColor}; display:flex; align-items:center; justify-content:center; font-size:12px; transform:translateZ(0); text-shadow:0 1px 2px rgba(0,0,0,0.2);">
-            ${emoji}
-          </div>
-        </div>
-      `;
-
-      const icon = window.L.divIcon({
-        className: `custom-medical-pin ${place.type}-pin`,
-        html: iconHtml,
-        iconSize: [32, 32],
-        iconAnchor: [16, 16]
-      });
-
-      const popupContent = `
-        <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 11px; min-width: 210px; color: #0f172a; padding: 2px;">
-          <div style="font-size: 9px; font-weight: 700; color: ${bgColor}; text-transform: uppercase; margin-bottom: 2px; display:flex; align-items:center; gap:4px;">
-            <span>${emoji}</span>
-            <span>${tagLabel}</span>
-          </div>
-          <div style="font-weight: 700; font-size: 13px; margin-bottom: 3px; line-height: 1.25; color:#0f172a;">${place.name}</div>
-          <div style="color: #64748b; font-size: 10px; margin-bottom: 4px; line-height: 1.3;">${place.address}</div>
-          <div style="font-weight: 600; color: #0f766e; font-size: 11px; margin-bottom: 6px;">📏 ${place.distanceKm} (${place.drivingTime})</div>
-          <div style="display: flex; gap: 6px; margin-top: 6px;">
-            <a href="tel:${place.phone}" style="flex: 1; text-align: center; background: #0f766e; color: white; padding: 6px 8px; border-radius: 8px; text-decoration: none; font-size: 10px; font-weight: 700;">📞 Call</a>
-            <a href="${place.directionsUrl}" target="_blank" rel="noopener noreferrer" style="flex: 1; text-align: center; background: #2563eb; color: white; padding: 6px 8px; border-radius: 8px; text-decoration: none; font-size: 10px; font-weight: 700;">🗺️ Route</a>
-          </div>
-        </div>
-      `;
-
-      const marker = window.L.marker([place.lat, place.lng], { icon })
-        .bindPopup(popupContent)
-        .addTo(markersGroupRef.current);
-      
-      placesMarkersMapRef.current.set(place.id, marker);
-    });
-  };
-
-  // Fetch real-time nearby medical places from TomTom service
-  const loadRealNearbyPlaces = async (lat, lng, category = 'all') => {
-    if (!lat || !lng) return;
-    try {
-      const places = await fetchNearbyMedicalPlaces(lat, lng, category);
-      setNearbyPlaces(places);
-      plotPlacesOnMap(places, { lat, lng });
-    } catch (err) {
-      console.error('Error loading nearby places:', err);
-    }
-  };
-
-  // Detect user's live GPS location and refresh nearby facilities
-  const handleDetectUserLocation = async () => {
-    setIsDetectingLocation(true);
-    try {
-      const loc = await getUserLocation();
-      if (loc && loc.lat && loc.lng) {
-        setUserCoords({ lat: loc.lat, lng: loc.lng });
-        
-        // Reverse geocode to readable address
-        const geoInfo = await reverseGeocodeCity(loc.lat, loc.lng);
-        setLocationAddress(geoInfo.formattedAddress || geoInfo.city);
-        setProfile(prev => ({ ...prev, city: geoInfo.city }));
-
-        // Center map on user location
-        if (mapInstanceRef.current && window.L) {
-          mapInstanceRef.current.setView([loc.lat, loc.lng], 14);
-        }
-
-        // Fetch real-time medical places around user
-        await loadRealNearbyPlaces(loc.lat, loc.lng, selectedPlaceCategory);
-      }
-    } catch (err) {
-      console.error('Location detection failed:', err);
-    } finally {
-      setIsDetectingLocation(false);
-    }
-  };
-
-  // Center map on place card click
-  const handlePlaceCardClick = (place) => {
-    if (!mapInstanceRef.current || !place.lat || !place.lng) return;
-    mapInstanceRef.current.flyTo([place.lat, place.lng], 16, { animate: true, duration: 0.8 });
-    const marker = placesMarkersMapRef.current.get(place.id);
-    if (marker) {
-      setTimeout(() => marker.openPopup(), 500);
-    }
-  };
-
-  // Handle category filter change (all, hospital, doctor, lab, pharmacy)
-  const handleCategoryFilterChange = async (cat) => {
-    setSelectedPlaceCategory(cat);
-    const lat = userCoords?.lat || 28.4744;
-    const lng = userCoords?.lng || 77.5030;
-    await loadRealNearbyPlaces(lat, lng, cat);
-  };
-
-  // Fallback / legacy map loader compatibility
+  // Leaflet Maps loader
   const loadMapMarkers = (city) => {
-    handleDetectUserLocation();
+    if (!window.L || !mapInstanceRef.current || !markersGroupRef.current) return;
+    
+    const cleanCity = city.toLowerCase().trim();
+    let coords = [28.6139, 77.2090]; // Delhi default
+    let matched = false;
+    
+    for (let key in CityCoordinates) {
+      if (cleanCity.includes(key) || key.includes(cleanCity)) {
+        coords = CityCoordinates[key];
+        matched = true;
+        break;
+      }
+    }
+    
+    mapInstanceRef.current.setView(coords, 13);
+    markersGroupRef.current.clearLayers();
+    
+    // Choose appropriate profile
+    let profileKey = "general";
+    let lowerSymptoms = userSymptoms.toLowerCase();
+    if (lowerSymptoms.includes("head") || lowerSymptoms.includes("migraine") || lowerSymptoms.includes("dizzy")) {
+      profileKey = "headache";
+    } else if (lowerSymptoms.includes("fever") || lowerSymptoms.includes("cough") || lowerSymptoms.includes("cold") || lowerSymptoms.includes("throat")) {
+      profileKey = "fever";
+    } else if (lowerSymptoms.includes("stomach") || lowerSymptoms.includes("belly") || lowerSymptoms.includes("nausea")) {
+      profileKey = "stomach";
+    }
+    
+    const activeProf = MedicalKnowledge[profileKey];
+    setMatchedProfile(activeProf);
+    
+    // doctor markers
+    activeProf.doctors.forEach((doc, idx) => {
+      const latOffset = (idx === 0) ? 0.003 : -0.004;
+      const lngOffset = (idx === 0) ? -0.004 : 0.005;
+      const docPos = [coords[0] + latOffset, coords[1] + lngOffset];
+      
+      const docIcon = window.L.divIcon({
+        className: 'glowing-pin doctor',
+        iconSize: [14, 14],
+        iconAnchor: [7, 7]
+      });
+      
+      window.L.marker(docPos, { icon: docIcon })
+        .bindPopup(`<strong>${doc.name}</strong><br>${doc.specialty}<br>${doc.phone}`)
+        .addTo(markersGroupRef.current);
+    });
+    
+    // lab markers
+    activeProf.labs.forEach((lab) => {
+      const latOffset = -0.002;
+      const lngOffset = -0.002;
+      const labPos = [coords[0] + latOffset, coords[1] + lngOffset];
+      
+      const labIcon = window.L.divIcon({
+        className: 'glowing-pin lab',
+        iconSize: [14, 14],
+        iconAnchor: [7, 7]
+      });
+      
+      window.L.marker(labPos, { icon: labIcon })
+        .bindPopup(`<strong>${lab.name}</strong><br>Lab Tests & Scans<br>${lab.phone}`)
+        .addTo(markersGroupRef.current);
+    });
   };
 
   // Initialize Leaflet Map once dashboard displays
@@ -876,9 +315,7 @@ export default function App() {
             
             markersGroupRef.current = window.L.layerGroup().addTo(inst);
             mapInstanceRef.current = inst;
-            
-            // Auto detect user location and load real nearby medical places
-            handleDetectUserLocation();
+            loadMapMarkers(profile.city);
           } catch (e) {
             console.error("Leaflet init error:", e);
           }
@@ -1265,18 +702,19 @@ export default function App() {
         className="w-full h-[200vh] flex flex-col slide-transition z-10 relative"
         style={{ transform: activePage === 'dashboard' ? 'translateY(-100vh)' : 'translateY(0)' }}
       >
-        {/* Scrollable Container wrapping Hero, About Carousel and Footer */}
-        <div className="w-full h-screen overflow-y-auto overflow-x-hidden relative scroll-smooth bg-transparent select-none z-10">
-          <section className="w-full min-h-screen flex flex-col justify-between pt-2 pb-4 px-6 relative z-10">
+        {/* ==========================================
+             PAGE 1: PREMIUM LANDING PAGE (Hero)
+             ========================================== */}
+        <section className="w-full h-screen flex flex-col justify-between p-6 select-none relative z-10">
           {/* Navigation Header with Glassmorphism Bar */}
-          <header className="flex justify-between items-center px-8 py-3 mx-auto my-1.5 w-full max-w-[80%] bg-[#0f766e]/5 backdrop-blur-md border border-[#0f766e]/15 rounded-2xl shadow-[0_4px_30px_rgba(0,0,0,0.03),_0_0_15px_rgba(15,118,110,0.05)] relative z-20">
+          <header className="flex justify-between items-center px-8 py-4 mx-auto my-3 w-full max-w-[94%] bg-[#0f766e]/5 backdrop-blur-md border border-[#0f766e]/15 rounded-2xl shadow-[0_4px_30px_rgba(0,0,0,0.03),_0_0_15px_rgba(15,118,110,0.05)] relative z-20">
             {/* Brand Logo and Name - slightly inset because of padding */}
             <div 
-              className="flex items-center gap-3 cursor-pointer group active:scale-95 transition-all"
-              onClick={() => setActivePage('landing')}
+              className="flex items-center gap-3 cursor-pointer hover:opacity-90 active:scale-95 transition-all"
+              onClick={() => setActivePage('dashboard')}
             >
-              <img src="assets/logo_original.png?v=5" alt="DOCURE Logo" className="h-9 w-auto mix-blend-multiply transition-transform duration-300 group-hover:scale-105" />
-              <h2 className="font-mono text-[22px] font-black tracking-wider text-[#0f766e] group-hover:text-brand-accent transition-colors duration-300">DOCURE</h2>
+              <img src="assets/logo_original.png?v=5" alt="DOCURE Logo" className="h-9 w-auto mix-blend-multiply" />
+              <h2 className="font-mono text-lg font-bold tracking-tight text-[#0f766e]">DOCURE</h2>
             </div>
 
             {/* Right side buttons: Settings and Red Circular SOS/Alert */}
@@ -1284,7 +722,7 @@ export default function App() {
               {/* Settings button */}
               <button 
                 className="w-10 h-10 rounded-full bg-white/50 hover:bg-[#0f766e]/10 border border-[#0f766e]/10 flex items-center justify-center text-brand-accent transition-all active:scale-95 shadow-sm"
-                onClick={() => setSettingsModalOpen(true)}
+                onClick={() => { setActivePage('dashboard'); setActiveTab('settings'); }}
                 title="Settings"
               >
                 <Settings className="w-5 h-5" />
@@ -1306,8 +744,7 @@ export default function App() {
 
           {/* Hero Content */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center flex-1 max-w-7xl mx-auto w-full relative z-20">
-            {/* Left Column: Text Details (Original Alignment - 6 cols) */}
-            <div className="lg:col-span-6 flex flex-col gap-4 text-left">
+            <div className="lg:col-span-7 flex flex-col gap-6 text-left">
               <span className="inline-flex items-center gap-1.5 self-start text-[10px] font-mono font-bold px-3 py-1 bg-brand-glowingGreen/10 text-brand-glowingGreen border border-brand-glowingGreen/20 rounded-full">
                 <span className="w-1.5 h-1.5 bg-brand-glowingGreen rounded-full animate-ping"></span>
                 Now in public beta
@@ -1336,87 +773,89 @@ export default function App() {
               </div>
             </div>
 
-            {/* Right Column: Animated Bunny MVP Video (Expanded 6 cols, Large Frame) */}
-            <div className="lg:col-span-6 flex justify-center items-center h-full relative overflow-visible">
-              <div className="relative w-full max-w-[550px] aspect-[9/16] max-h-[66vh] animate-bunny-float select-none flex items-center justify-center overflow-visible">
-                {/* Floating shadow below the video */}
-                <div className="w-[220px] h-[12px] bg-[#0f766e]/12 rounded-full blur-[4px] absolute bottom-0 left-1/2 -translate-x-1/2 pulse-active" />
-                
-                <ChromaKeyVideo src="assets/bunny_mvp.webm?v=3" />
+            {/* Right Side Mascot vector */}
+            <div className="lg:col-span-5 flex justify-center items-center h-full relative">
+              <div className="relative w-80 h-80 animate-bunny-float select-none">
+                <svg viewBox="0 0 200 220" fill="none" className="w-full h-full drop-shadow-xl" xmlns="http://www.w3.org/2000/svg">
+                  {/* Floating shadow below the bot */}
+                  <ellipse cx="100" cy="205" rx="30" ry="5" fill="rgba(15, 118, 110, 0.12)" className="pulse-active" />
+
+                  {/* Left Wiggling Ear */}
+                  <g className="animate-ear-left origin-[82px_60px]">
+                    <path d="M72 60 C63 25 73 5 80 5 C87 5 85 25 80 60" fill="#e6f4f2" stroke="#0f766e" strokeWidth="3.5" />
+                    <path d="M74 54 C68 28 75 14 78 14 C81 14 80 28 77 54" fill="#a7f3d0" />
+                  </g>
+
+                  {/* Right Wiggling Ear */}
+                  <g className="animate-ear-right origin-[118px_60px]">
+                    <path d="M128 60 C137 25 127 5 120 5 C113 5 115 25 120 60" fill="#e6f4f2" stroke="#0f766e" strokeWidth="3.5" />
+                    <path d="M126 54 C132 28 125 14 122 14 C119 14 120 28 123 54" fill="#a7f3d0" />
+                  </g>
+
+                  {/* Antenna */}
+                  <rect x="98" y="44" width="4" height="18" fill="#0f766e" />
+                  <circle cx="100" cy="40" r="5" fill="#10b981" className="animate-eye-glow" />
+
+                  {/* Hovering Robot Body */}
+                  <rect x="64" y="112" width="72" height="64" rx="20" fill="#e6f4f2" stroke="#0f766e" strokeWidth="3.5" />
+
+                  {/* Chest ECG Heart Screen */}
+                  <rect x="77" y="124" width="46" height="34" rx="8" fill="#0f172a" stroke="#0f766e" strokeWidth="1.8" />
+                  <path d="M81 141 H89 L92 131 L96 151 L100 138 L103 144 L106 141 H119" stroke="#10b981" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none" className="pulse-active" />
+
+                  {/* Dangling Stethoscope */}
+                  <path d="M72 106 C72 124 128 124 128 106" stroke="#0f766e" strokeWidth="3" fill="none" />
+                  <circle cx="100" cy="118" r="4.5" fill="#0f766e" />
+
+                  {/* Robot Head */}
+                  <rect x="68" y="58" width="64" height="54" rx="18" fill="#e6f4f2" stroke="#0f766e" strokeWidth="3.5" />
+
+                  {/* Digital Face Screen */}
+                  <rect x="75" y="65" width="50" height="40" rx="12" fill="#0f172a" />
+
+                  {/* Glowing Digital Eyes */}
+                  <circle cx="88" cy="82" r="5.5" fill="#10b981" className="animate-eye-glow" />
+                  <circle cx="112" cy="82" r="5.5" fill="#10b981" className="animate-eye-glow" />
+
+                  {/* Smiling Mouth */}
+                  <path d="M94 92 Q100 97 106 92" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+
+                  {/* Waving Robot Arms (Left & Right) */}
+                  <g className="animate-arm-left origin-[64px_128px]">
+                    <rect x="36" y="122" width="28" height="11" rx="5.5" fill="#e6f4f2" stroke="#0f766e" strokeWidth="3.5" />
+                  </g>
+                  <g className="animate-arm-right origin-[136px_128px]">
+                    <rect x="136" y="122" width="28" height="11" rx="5.5" fill="#e6f4f2" stroke="#0f766e" strokeWidth="3.5" />
+                  </g>
+                </svg>
               </div>
             </div>
           </div>
 
-          {/* Footer blocks / Premium Interactive Shortcut Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 relative z-20 w-full max-w-7xl mx-auto mt-4 px-4">
-            {/* Card 1: Symptom Chat */}
-            <div 
-              className="bg-white/30 backdrop-blur-md border border-[#0f766e]/10 hover:border-[#0f766e]/30 rounded-3xl p-5 text-left flex items-start gap-4 transition-all duration-300 hover:-translate-y-1.5 hover:scale-[1.02] hover:shadow-[0_12px_40px_rgba(15,118,110,0.1)] cursor-pointer group"
-              onClick={() => { setActivePage('dashboard'); setActiveTab('reduce'); }}
-            >
-              <div className="w-12 h-12 rounded-2xl bg-[#0f766e]/10 border border-[#0f766e]/10 flex items-center justify-center text-brand-accent group-hover:bg-[#0f766e]/20 transition-all">
-                <Bot className="w-6 h-6" />
-              </div>
-              <div className="flex-1">
-                <span className="text-sm font-bold text-brand-textDark group-hover:text-brand-accent transition-all block mb-1">Symptom Chat</span>
-                <p className="text-[11px] text-brand-textMuted leading-relaxed">Describe symptoms to start automated triage with clinical guidance.</p>
-              </div>
+          {/* Footer blocks */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 relative z-20">
+            <div className="bg-white/40 border border-brand-border rounded-2xl p-4 text-left backdrop-blur-sm">
+              <span className="text-xs text-brand-textMuted">Symptom Chat</span>
+              <p className="text-[10px] text-brand-textMuted mt-1">Triage health issues</p>
             </div>
-
-            {/* Card 2: Medical Maps */}
-            <div 
-              className="bg-white/30 backdrop-blur-md border border-[#0f766e]/10 hover:border-[#0f766e]/30 rounded-3xl p-5 text-left flex items-start gap-4 transition-all duration-300 hover:-translate-y-1.5 hover:scale-[1.02] hover:shadow-[0_12px_40px_rgba(15,118,110,0.1)] cursor-pointer group"
-              onClick={() => { setActivePage('dashboard'); }}
-            >
-              <div className="w-12 h-12 rounded-2xl bg-[#0f766e]/10 border border-[#0f766e]/10 flex items-center justify-center text-brand-accent group-hover:bg-[#0f766e]/20 transition-all">
-                <MapPin className="w-6 h-6" />
-              </div>
-              <div className="flex-1">
-                <span className="text-sm font-bold text-brand-textDark group-hover:text-brand-accent transition-all block mb-1">Medical Maps</span>
-                <p className="text-[11px] text-brand-textMuted leading-relaxed">Locate verified specialists and diagnostic testing centers near you.</p>
-              </div>
+            <div className="bg-white/40 border border-brand-border rounded-2xl p-4 text-left backdrop-blur-sm">
+              <span className="text-xs text-brand-textMuted">Medical Maps</span>
+              <p className="text-[10px] text-brand-textMuted mt-1">Clinics & labs search</p>
             </div>
-
-            {/* Card 3: Report Scanner */}
-            <div 
-              className="bg-white/30 backdrop-blur-md border border-[#0f766e]/10 hover:border-[#0f766e]/30 rounded-3xl p-5 text-left flex items-start gap-4 transition-all duration-300 hover:-translate-y-1.5 hover:scale-[1.02] hover:shadow-[0_12px_40px_rgba(15,118,110,0.1)] cursor-pointer group"
-              onClick={() => { setActivePage('dashboard'); setActiveTab('report'); }}
-            >
-              <div className="w-12 h-12 rounded-2xl bg-[#0f766e]/10 border border-[#0f766e]/10 flex items-center justify-center text-brand-accent group-hover:bg-[#0f766e]/20 transition-all">
-                <ClipboardList className="w-6 h-6" />
-              </div>
-              <div className="flex-1">
-                <span className="text-sm font-bold text-brand-textDark group-hover:text-brand-accent transition-all block mb-1">Report Scanner</span>
-                <p className="text-[11px] text-brand-textMuted leading-relaxed">Scan blood test reports to extract and check key biomarkers.</p>
-              </div>
+            <div className="bg-white/40 border border-brand-border rounded-2xl p-4 text-left backdrop-blur-sm">
+              <span className="text-xs text-brand-textMuted">Report Scanner</span>
+              <p className="text-[10px] text-brand-textMuted mt-1">Summarize pdf scans</p>
             </div>
-
-            {/* Card 4: Emergency Desk */}
-            <div 
-              className="bg-white/30 backdrop-blur-md border border-[#f43f5e]/10 hover:border-[#f43f5e]/30 rounded-3xl p-5 text-left flex items-start gap-4 transition-all duration-300 hover:-translate-y-1.5 hover:scale-[1.02] hover:shadow-[0_12px_40px_rgba(244,63,94,0.12)] cursor-pointer group"
-              onClick={() => { setActivePage('dashboard'); triggerEmergency(); }}
-            >
-              <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/15 flex items-center justify-center text-rose-500 group-hover:bg-rose-500/20 transition-all">
-                <ShieldAlert className="w-6 h-6 animate-pulse" />
-              </div>
-              <div className="flex-1">
-                <span className="text-sm font-bold text-brand-textDark group-hover:text-rose-500 transition-all block mb-1">Emergency Desk</span>
-                <p className="text-[11px] text-brand-textMuted leading-relaxed">Trigger immediate SOS alerts and coordinates to family links.</p>
-              </div>
+            <div className="bg-white/40 border border-brand-border rounded-2xl p-4 text-left backdrop-blur-sm">
+              <span className="text-xs text-brand-textMuted">Emergency Desk</span>
+              <p className="text-[10px] text-brand-textMuted mt-1">Get immediate contact</p>
             </div>
           </div>
         </section>
 
-        {/* About Section: 3D Flashcards Carousel */}
-        <AboutCarousel />
-
-        {/* Footer Section */}
-        <LandingFooter setActivePage={setActivePage} setActiveTab={setActiveTab} />
-      </div>
-
-      {/* ==========================================
-           PAGE 2: CLINICAL TRIAGE DESK (Dashboard)
-           ========================================== */}
+        {/* ==========================================
+             PAGE 2: CLINICAL TRIAGE DESK (Dashboard)
+             ========================================== */}
         <section className="w-full h-screen flex border-t border-brand-border z-20 relative bg-brand-bg">
           {/* Sleek Glass Sidebar Menu Bar */}
           <div className="w-[85px] my-4 ml-4 rounded-[32px] bg-gradient-to-b from-[#0a6d5c]/95 to-[#043d33]/95 backdrop-blur-md shadow-2xl flex flex-col items-center py-6 gap-5 shrink-0 relative z-30 select-none border border-white/10">
@@ -1435,30 +874,16 @@ export default function App() {
                 className={`sidebar-item flex flex-col items-center justify-center py-3 text-[10px] w-[70px] mx-auto rounded-2xl relative transition-all duration-300 ${activeTab === 'home' ? 'bg-white text-[#0f766e] font-bold shadow-lg shadow-black/10' : 'text-white/70 hover:text-white hover:bg-white/5'}`}
                 onClick={() => setActiveTab('home')}
               >
-                <Activity className="w-5 h-5 mb-1" />
+                <Home className="w-5 h-5 mb-1" />
                 <span>Home</span>
               </button>
+
               <button 
-                className={`sidebar-item flex flex-col items-center justify-center py-3 text-[10px] w-[70px] mx-auto rounded-2xl relative transition-all duration-300 ${activeTab === 'measure' ? 'bg-white text-[#0f766e] font-bold shadow-lg shadow-black/10' : 'text-white/70 hover:text-white hover:bg-white/5'}`}
-                onClick={() => setActiveTab('measure')}
+                className={`sidebar-item flex flex-col items-center justify-center py-3 text-[10px] w-[70px] mx-auto rounded-2xl relative transition-all duration-300 ${activeTab === 'chatbot' ? 'bg-white text-[#0f766e] font-bold shadow-lg shadow-black/10' : 'text-white/70 hover:text-white hover:bg-white/5'}`}
+                onClick={() => setActiveTab('chatbot')}
               >
-                <Activity className="w-5 h-5 mb-1" />
-                <span>Measure</span>
-              </button>
-              <button 
-                className={`sidebar-item flex flex-col items-center justify-center py-3 text-[10px] w-[70px] mx-auto rounded-2xl relative transition-all duration-300 ${activeTab === 'analyze' ? 'bg-white text-[#0f766e] font-bold shadow-lg shadow-black/10' : 'text-white/70 hover:text-white hover:bg-white/5'}`}
-                onClick={() => setActiveTab('analyze')}
-                title="Spatial Care Radar & Medical Maps"
-              >
-                <Compass className="w-5 h-5 mb-1" />
-                <span>Radar</span>
-              </button>
-              <button 
-                className={`sidebar-item flex flex-col items-center justify-center py-3 text-[10px] w-[70px] mx-auto rounded-2xl relative transition-all duration-300 ${activeTab === 'reduce' ? 'bg-white text-[#0f766e] font-bold shadow-lg shadow-black/10' : 'text-white/70 hover:text-white hover:bg-white/5'}`}
-                onClick={() => setActiveTab('reduce')}
-              >
-                <BarChart3 className="w-5 h-5 mb-1" />
-                <span>Reduce</span>
+                <Bot className="w-5 h-5 mb-1" />
+                <span>Chatbot</span>
               </button>
               <button 
                 className={`sidebar-item flex flex-col items-center justify-center py-3 text-[10px] w-[70px] mx-auto rounded-2xl relative transition-all duration-300 ${activeTab === 'report' ? 'bg-white text-[#0f766e] font-bold shadow-lg shadow-black/10' : 'text-white/70 hover:text-white hover:bg-white/5'}`}
@@ -1474,13 +899,20 @@ export default function App() {
                 <Pill className="w-5 h-5 mb-1" />
                 <span>Meds</span>
               </button>
+              <button 
+                className={`sidebar-item flex flex-col items-center justify-center py-3 text-[10px] w-[70px] mx-auto rounded-2xl relative transition-all duration-300 ${activeTab === 'analyze' ? 'bg-white text-[#0f766e] font-bold shadow-lg shadow-black/10' : 'text-white/70 hover:text-white hover:bg-white/5'}`}
+                onClick={() => setActiveTab('analyze')}
+              >
+                <LineChart className="w-5 h-5 mb-1" />
+                <span>Analyze</span>
+              </button>
             </div>
             
             {/* Bottom Actions */}
             <div className="flex flex-col w-full relative gap-2.5 mt-auto">
               <button 
-                className={`sidebar-item flex flex-col items-center justify-center py-3 text-[10px] w-[70px] mx-auto rounded-2xl relative transition-all duration-300 ${settingsModalOpen ? 'bg-white text-[#0f766e] font-bold shadow-lg' : 'text-white/70 hover:text-white hover:bg-white/5'}`}
-                onClick={() => setSettingsModalOpen(true)}
+                className={`sidebar-item flex flex-col items-center justify-center py-3 text-[10px] w-[70px] mx-auto rounded-2xl relative transition-all duration-300 ${activeTab === 'settings' ? 'bg-white text-[#0f766e] font-bold shadow-lg' : 'text-white/70 hover:text-white hover:bg-white/5'}`}
+                onClick={() => setActiveTab('settings')}
               >
                 <Settings className="w-5 h-5 mb-1" />
                 <span>Settings</span>
@@ -1495,143 +927,180 @@ export default function App() {
             </div>
           </div>
 
-          {/* Left Aside Diagnostic panel (Hidden on standalone Node views like Radar, Reminders & Report) */}
-          {activeTab !== 'analyze' && activeTab !== 'reminders' && activeTab !== 'report' && (
-            <aside className="w-80 bg-brand-sand border-r border-brand-border flex flex-col p-5 gap-4 overflow-y-auto shrink-0 select-none">
-              <div className="flex items-center gap-2">
-                <button 
-                  className="text-brand-textMuted hover:text-brand-textDark text-xs font-semibold flex items-center gap-1"
-                  onClick={() => setActivePage('landing')}
-                >
-                  <ArrowLeft className="w-3.5 h-3.5" />
-                  Back to Home
-                </button>
-              </div>
+          {/* ==========================================
+               DYNAMIC TAB VIEWS
+               ========================================== */}
 
-              {/* Wellness Pulse graph */}
-              <div className="bg-white border border-brand-border rounded-2xl p-4 flex flex-col gap-3 transition-all duration-300 hover:border-brand-borderHover">
-                <div className="flex items-center gap-2 text-brand-accent">
-                  <Activity className="w-4 h-4 text-brand-glowingGreen animate-pulse" />
-                  <h4 className="text-[11px] font-mono font-bold tracking-wider uppercase">Wellness Heartbeat</h4>
+          {/* TAB 1: HOME DASHBOARD */}
+          {activeTab === 'home' && (
+            <div className="flex-1 flex flex-col bg-white overflow-y-auto">
+              <header className="h-[70px] bg-brand-sand border-b border-brand-border flex justify-between items-center px-8 shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-brand-accent/10 flex items-center justify-center text-brand-accent font-bold text-lg border border-brand-accent/20">
+                    {profile.name.charAt(0)}
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-brand-textDark">Welcome back, {profile.name} 👋</h3>
+                    <p className="text-xs text-brand-textMuted">Your personalized AI Health & Care Command Center</p>
+                  </div>
                 </div>
-                <canvas ref={ekgCanvasRef} width="240" height="50" className="bg-slate-900 border border-slate-800 rounded-lg w-full"></canvas>
-                <div className="flex justify-between text-xs font-mono">
-                  <span>Pulse: <strong>{pulse}</strong> BPM</span>
-                  <span>Risk: <strong style={{ color: risk === 'SOS' ? '#f43f5e' : (risk === 'Elevated' ? '#8b5cf6' : '#10b981') }}>{risk}</strong></span>
-                </div>
-              </div>
-
-              {/* Prescriptions reminders scheduler */}
-              <div className="bg-white border border-brand-border rounded-2xl p-4 flex flex-col gap-3 transition-all duration-300 hover:border-brand-borderHover">
-                <div className="flex items-center gap-2 text-brand-accent">
-                  <ClipboardList className="w-4 h-4" />
-                  <h4 className="text-[11px] font-mono font-bold tracking-wider uppercase">Active Prescriptions</h4>
-                </div>
-                
-                <div className="flex flex-col gap-2 max-h-36 overflow-y-auto">
-                  {liveReminders.length === 0 ? (
-                    <p className="text-[11px] text-slate-400 italic py-1 text-center">No prescriptions scheduled yet.</p>
-                  ) : (
-                    liveReminders.map(med => (
-                      <div key={med.id} className="bg-brand-sand border border-brand-border rounded-lg p-2 flex justify-between items-center">
-                        <div className="flex flex-col text-xs">
-                          <span className="font-bold text-brand-textDark flex items-center gap-1">
-                            <span>{med.medIcon || '💊'}</span> {med.medicineName}
-                          </span>
-                          <span className="text-[10px] text-brand-textMuted">
-                            {med.dosage} • {Array.isArray(med.doseTimes) ? med.doseTimes.join(', ') : med.time || ''}
-                          </span>
-                        </div>
-                        <button 
-                          className="text-brand-textMuted hover:text-brand-rose font-bold text-base px-1.5 hover:bg-black/5 rounded"
-                          onClick={() => deleteReminder(med.id, currentUserId, med)}
-                          title="Delete prescription"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))
-                  )}
-                </div>
-
-                <div className="flex flex-col gap-2 mt-1">
+                <div className="flex items-center gap-3">
                   <button 
-                    className="w-full py-1 bg-brand-sand border border-brand-border hover:bg-brand-border/10 text-xs font-semibold rounded-lg"
-                    onClick={() => setPrescFormOpen(!prescFormOpen)}
+                    onClick={() => setActivePage('landing')}
+                    className="px-3.5 py-1.5 bg-white border border-brand-border hover:bg-brand-sand text-xs font-semibold text-brand-textDark rounded-full flex items-center gap-1.5 transition-all shadow-sm"
                   >
-                    + Add Prescription
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    <span>Landing Page</span>
                   </button>
-                  
-                  {prescFormOpen && (
-                    <div className="flex flex-col gap-2 border-t border-brand-border pt-2">
-                      <input 
-                        type="text" 
-                        placeholder="Pill Name" 
-                        value={newPrescName}
-                        onChange={e => setNewPrescName(e.target.value)}
-                        className="border border-brand-border rounded px-2 py-1 outline-none text-xs focus:border-brand-accent bg-white"
-                      />
-                      <input 
-                        type="text" 
-                        placeholder="Dose Time (e.g. 08:00 AM)" 
-                        value={newPrescTime}
-                        onChange={e => setNewPrescTime(e.target.value)}
-                        className="border border-brand-border rounded px-2 py-1 outline-none text-xs focus:border-brand-accent bg-white"
-                      />
-                      <div className="flex gap-2">
-                        <button 
-                          className="flex-1 py-1 bg-brand-accent/10 border border-brand-accent/30 text-brand-accent text-xs font-bold rounded-lg"
-                          onClick={handleAddPrescription}
-                        >
-                          Add
-                        </button>
-                        <button 
-                          className="flex-1 py-1 bg-transparent text-brand-textMuted text-xs font-bold rounded-lg"
-                          onClick={() => setPrescFormOpen(false)}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                  
-                  <button
-                    onClick={() => setActiveTab('reminders')}
-                    className="w-full py-1.5 bg-brand-accent/10 hover:bg-brand-accent/20 border border-brand-accent/30 text-brand-accent text-[10px] font-bold rounded-lg flex items-center justify-center gap-1 transition-all"
+                  <button 
+                    onClick={triggerEmergency}
+                    className="px-3.5 py-1.5 bg-brand-rose hover:bg-red-600 text-white text-xs font-bold rounded-full flex items-center gap-1.5 transition-all shadow-sm shadow-rose-200"
                   >
-                    <Pill className="w-3 h-3" />
-                    <span>Full Medication Schedules →</span>
+                    <ShieldAlert className="w-3.5 h-3.5" />
+                    <span>🚨 SOS</span>
                   </button>
                 </div>
-              </div>
+              </header>
 
-              {/* Emergency SOS override button */}
-              <div className="mt-auto">
-                <button 
-                  className="w-full py-3 bg-brand-rose hover:bg-red-600 text-white font-mono font-bold text-xs tracking-wider rounded-xl shadow-lg shadow-rose-200/50"
-                  onClick={triggerEmergency}
-                >
-                  🚨 EMERGENCY SOS TRIGGER
-                </button>
+              <div className="p-8 flex flex-col gap-6 max-w-6xl mx-auto w-full">
+                {/* Quick Status Banners */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-5 flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-sm">
+                      <Activity className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-mono uppercase font-bold text-emerald-800 tracking-wider">Health Status</p>
+                      <h4 className="text-lg font-bold text-emerald-950 mt-0.5">Optimal & Monitored</h4>
+                      <span className="text-[11px] text-emerald-700">Risk: Normal (Pulse: 72 BPM)</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-sky-50/70 border border-sky-200/80 rounded-2xl p-5 flex items-center gap-4 cursor-pointer hover:border-sky-300 transition-all" onClick={() => setActiveTab('reminders')}>
+                    <div className="w-12 h-12 rounded-xl bg-sky-500 text-white flex items-center justify-center shrink-0 shadow-sm">
+                      <Pill className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-mono uppercase font-bold text-sky-800 tracking-wider">Active Prescriptions</p>
+                      <h4 className="text-lg font-bold text-sky-950 mt-0.5">{liveReminders.length} Scheduled</h4>
+                      <span className="text-[11px] text-sky-700">Click to view reminders →</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-purple-50/70 border border-purple-200/80 rounded-2xl p-5 flex items-center gap-4 cursor-pointer hover:border-purple-300 transition-all" onClick={() => setActiveTab('report')}>
+                    <div className="w-12 h-12 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                      <ClipboardList className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-mono uppercase font-bold text-purple-800 tracking-wider">Lab Reports</p>
+                      <h4 className="text-lg font-bold text-purple-950 mt-0.5">Biomarkers Ready</h4>
+                      <span className="text-[11px] text-purple-700">Scan & analyze tests →</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick Feature Navigation Cards */}
+                <div>
+                  <h4 className="text-xs font-mono font-bold text-brand-textMuted uppercase tracking-wider mb-3">Quick Navigation Modules</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div 
+                      onClick={() => setActiveTab('chatbot')}
+                      className="bg-brand-sand border border-brand-border hover:border-brand-accent p-5 rounded-2xl cursor-pointer hover:shadow-md transition-all group flex flex-col justify-between"
+                    >
+                      <div>
+                        <div className="w-10 h-10 rounded-xl bg-brand-accent/10 group-hover:bg-brand-accent text-brand-accent group-hover:text-white flex items-center justify-center transition-all mb-3">
+                          <Bot className="w-5 h-5" />
+                        </div>
+                        <h5 className="font-bold text-sm text-brand-textDark">AI Health Chatbot</h5>
+                        <p className="text-xs text-brand-textMuted mt-1">Interactive symptom diagnosis, triage questions & health voice queries.</p>
+                      </div>
+                      <span className="text-xs font-bold text-brand-accent mt-4 inline-flex items-center gap-1">Open Chatbot →</span>
+                    </div>
+
+                    <div 
+                      onClick={() => setActiveTab('report')}
+                      className="bg-brand-sand border border-brand-border hover:border-brand-accent p-5 rounded-2xl cursor-pointer hover:shadow-md transition-all group flex flex-col justify-between"
+                    >
+                      <div>
+                        <div className="w-10 h-10 rounded-xl bg-brand-accent/10 group-hover:bg-brand-accent text-brand-accent group-hover:text-white flex items-center justify-center transition-all mb-3">
+                          <ClipboardList className="w-5 h-5" />
+                        </div>
+                        <h5 className="font-bold text-sm text-brand-textDark">Report Scanner</h5>
+                        <p className="text-xs text-brand-textMuted mt-1">Upload blood tests and PDF reports to extract metabolic biomarkers automatically.</p>
+                      </div>
+                      <span className="text-xs font-bold text-brand-accent mt-4 inline-flex items-center gap-1">Scan Reports →</span>
+                    </div>
+
+                    <div 
+                      onClick={() => setActiveTab('reminders')}
+                      className="bg-brand-sand border border-brand-border hover:border-brand-accent p-5 rounded-2xl cursor-pointer hover:shadow-md transition-all group flex flex-col justify-between"
+                    >
+                      <div>
+                        <div className="w-10 h-10 rounded-xl bg-brand-accent/10 group-hover:bg-brand-accent text-brand-accent group-hover:text-white flex items-center justify-center transition-all mb-3">
+                          <Pill className="w-5 h-5" />
+                        </div>
+                        <h5 className="font-bold text-sm text-brand-textDark">Medicine Reminders</h5>
+                        <p className="text-xs text-brand-textMuted mt-1">Full dosage scheduler with browser alarms, logs and history tracking.</p>
+                      </div>
+                      <span className="text-xs font-bold text-brand-accent mt-4 inline-flex items-center gap-1">Manage Meds →</span>
+                    </div>
+
+                    <div 
+                      onClick={() => setActiveTab('analyze')}
+                      className="bg-brand-sand border border-brand-border hover:border-brand-accent p-5 rounded-2xl cursor-pointer hover:shadow-md transition-all group flex flex-col justify-between"
+                    >
+                      <div>
+                        <div className="w-10 h-10 rounded-xl bg-brand-accent/10 group-hover:bg-brand-accent text-brand-accent group-hover:text-white flex items-center justify-center transition-all mb-3">
+                          <LineChart className="w-5 h-5" />
+                        </div>
+                        <h5 className="font-bold text-sm text-brand-textDark">Health Analytics</h5>
+                        <p className="text-xs text-brand-textMuted mt-1">Day-wise clinical vitals, Sugar, RBC, Haemoglobin, BP & weight trends.</p>
+                      </div>
+                      <span className="text-xs font-bold text-brand-accent mt-4 inline-flex items-center gap-1">View Analytics →</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Profile & Chronic conditions preview */}
+                <div className="bg-white border border-brand-border rounded-2xl p-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <div>
+                      <h4 className="font-bold text-sm text-brand-textDark">Patient Clinical Profile</h4>
+                      <p className="text-xs text-brand-textMuted">Configured parameters for AI safety & personalized advice</p>
+                    </div>
+                    <button 
+                      onClick={() => setProfileModalOpen(true)}
+                      className="text-xs font-bold text-brand-accent bg-brand-accent/10 hover:bg-brand-accent/20 px-3 py-1.5 rounded-lg transition-all"
+                    >
+                      Edit Profile
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                    <div className="bg-brand-sand/60 p-3 rounded-xl">
+                      <span className="text-brand-textMuted block text-[10px] uppercase font-bold">Age / Gender</span>
+                      <span className="font-bold text-brand-textDark mt-0.5 block">{profile.age} yrs • {profile.gender}</span>
+                    </div>
+                    <div className="bg-brand-sand/60 p-3 rounded-xl">
+                      <span className="text-brand-textMuted block text-[10px] uppercase font-bold">City / Location</span>
+                      <span className="font-bold text-brand-textDark mt-0.5 block">{profile.city}</span>
+                    </div>
+                    <div className="bg-brand-sand/60 p-3 rounded-xl">
+                      <span className="text-brand-textMuted block text-[10px] uppercase font-bold">Allergies</span>
+                      <span className="font-bold text-amber-700 mt-0.5 block">{allergies.length > 0 ? allergies.join(', ') : 'None'}</span>
+                    </div>
+                    <div className="bg-brand-sand/60 p-3 rounded-xl">
+                      <span className="text-brand-textMuted block text-[10px] uppercase font-bold">Chronic Conditions</span>
+                      <span className="font-bold text-brand-textDark mt-0.5 block">{conditions.length > 0 ? conditions.join(', ') : 'None'}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </aside>
+            </div>
           )}
 
-          {/* Main Area: Render dedicated Node tabs */}
-          {activeTab === 'reminders' ? (
-            <MedicineReminder userId={currentUserId} />
-          ) : activeTab === 'analyze' ? (
-            <MedicalRadarNode 
-              defaultCity={profile.city} 
-              onOpenEmergency={triggerEmergency} 
-              onBackHome={() => setActivePage('landing')} 
-            />
-          ) : activeTab === 'report' ? (
-            <LabReportAnalyzerNode 
-              onBackHome={() => setActivePage('landing')} 
-            />
-          ) : (
-            <>
+          {/* TAB 2: CHATBOT WITH RIGHT-SIDE PRESCRIPTIONS */}
+          {activeTab === 'chatbot' && (
+            <div className="flex-1 flex overflow-hidden">
               {/* Center Chat Panel */}
               <main className="flex-1 flex flex-col bg-white relative border-r border-brand-border">
                 <header className="h-[70px] bg-brand-sand border-b border-brand-border flex justify-between items-center px-6 shrink-0 select-none">
@@ -1742,189 +1211,335 @@ export default function App() {
                 </div>
               </main>
 
-              {/* Right Map Panel: Real-Time Medical Radar */}
-              <aside className="w-[380px] bg-brand-sand border-l border-brand-border flex flex-col shrink-0">
-                {/* Radar Header */}
-                <div className="p-4 border-b border-brand-border flex flex-col gap-2.5 bg-white/50 backdrop-blur-sm">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-xl bg-[#0f766e]/10 border border-[#0f766e]/20 flex items-center justify-center text-[#0f766e]">
-                        <Compass className="w-4 h-4 animate-spin-slow" />
-                      </div>
-                      <div>
-                        <h3 className="text-xs font-bold text-brand-textDark">Medical Radar</h3>
-                        <p className="text-[10px] text-brand-textMuted flex items-center gap-1 font-mono">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                          Live GPS Radius: 10 km
-                        </p>
-                      </div>
-                    </div>
+              {/* Right Aside: Shifted Prescriptions & Emergency Panel */}
+              <aside className="w-80 bg-brand-sand flex flex-col p-5 gap-4 overflow-y-auto shrink-0 select-none border-l border-brand-border">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-brand-textDark font-bold text-xs">
+                    <ClipboardList className="w-4 h-4 text-brand-accent" />
+                    <span>Prescriptions Desk</span>
+                  </div>
+                  <button 
+                    className="text-brand-textMuted hover:text-brand-textDark text-[11px] font-semibold flex items-center gap-1"
+                    onClick={() => setActivePage('landing')}
+                  >
+                    <ArrowLeft className="w-3 h-3" />
+                    Home
+                  </button>
+                </div>
 
-                    {/* Auto Detect GPS Button */}
-                    <button
-                      onClick={handleDetectUserLocation}
-                      disabled={isDetectingLocation}
-                      className="px-3 py-1.5 bg-[#0f766e] hover:bg-[#0d645e] disabled:opacity-50 text-white rounded-xl text-[10px] font-bold font-mono flex items-center gap-1.5 shadow-sm transition-all active:scale-95"
-                      title="Detect My Current GPS Location"
+                {/* Prescriptions reminders scheduler */}
+                <div className="bg-white border border-brand-border rounded-2xl p-4 flex flex-col gap-3 transition-all duration-300 hover:border-brand-borderHover">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-brand-accent">
+                      <Pill className="w-4 h-4" />
+                      <h4 className="text-[11px] font-mono font-bold tracking-wider uppercase">Active Prescriptions</h4>
+                    </div>
+                    <span className="text-[10px] font-mono bg-brand-accent/10 text-brand-accent px-1.5 py-0.5 rounded font-bold">{liveReminders.length}</span>
+                  </div>
+                  
+                  <div className="flex flex-col gap-2 max-h-56 overflow-y-auto">
+                    {liveReminders.length === 0 ? (
+                      <p className="text-[11px] text-slate-400 italic py-3 text-center">No prescriptions scheduled yet.</p>
+                    ) : (
+                      liveReminders.map(med => (
+                        <div key={med.id} className="bg-brand-sand border border-brand-border rounded-lg p-2.5 flex justify-between items-center">
+                          <div className="flex flex-col text-xs">
+                            <span className="font-bold text-brand-textDark flex items-center gap-1">
+                              <span>{med.medIcon || '💊'}</span> {med.medicineName}
+                            </span>
+                            <span className="text-[10px] text-brand-textMuted">
+                              {med.dosage} • {Array.isArray(med.doseTimes) ? med.doseTimes.join(', ') : med.time || ''}
+                            </span>
+                          </div>
+                          <button 
+                            className="text-brand-textMuted hover:text-brand-rose font-bold text-base px-1.5 hover:bg-black/5 rounded transition-all"
+                            onClick={() => deleteReminder(med.id, currentUserId, med)}
+                            title="Delete prescription"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  <div className="flex flex-col gap-2 mt-1">
+                    <button 
+                      className="w-full py-1.5 bg-brand-sand border border-brand-border hover:bg-brand-border/10 text-xs font-semibold rounded-lg transition-all"
+                      onClick={() => setPrescFormOpen(!prescFormOpen)}
                     >
-                      {isDetectingLocation ? (
-                        <>
-                          <RefreshCw className="w-3 h-3 animate-spin" />
-                          <span>Detecting...</span>
-                        </>
-                      ) : (
-                        <>
-                          <LocateFixed className="w-3 h-3 text-emerald-300 animate-pulse" />
-                          <span>Locate Me</span>
-                        </>
-                      )}
+                      + Add Prescription
+                    </button>
+                    
+                    {prescFormOpen && (
+                      <div className="flex flex-col gap-2 border-t border-brand-border pt-2">
+                        <input 
+                          type="text" 
+                          placeholder="Pill Name (e.g. Paracetamol)" 
+                          value={newPrescName}
+                          onChange={e => setNewPrescName(e.target.value)}
+                          className="border border-brand-border rounded px-2.5 py-1.5 outline-none text-xs focus:border-brand-accent bg-white"
+                        />
+                        <input 
+                          type="text" 
+                          placeholder="Dose Time (e.g. 08:00 AM)" 
+                          value={newPrescTime}
+                          onChange={e => setNewPrescTime(e.target.value)}
+                          className="border border-brand-border rounded px-2.5 py-1.5 outline-none text-xs focus:border-brand-accent bg-white"
+                        />
+                        <div className="flex gap-2">
+                          <button 
+                            className="flex-1 py-1.5 bg-brand-accent text-white text-xs font-bold rounded-lg shadow-sm hover:opacity-90 transition-all"
+                            onClick={handleAddPrescription}
+                          >
+                            Add
+                          </button>
+                          <button 
+                            className="flex-1 py-1.5 bg-transparent text-brand-textMuted text-xs font-bold rounded-lg hover:bg-black/5"
+                            onClick={() => setPrescFormOpen(false)}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <button
+                      onClick={() => setActiveTab('reminders')}
+                      className="w-full py-2 bg-brand-accent/10 hover:bg-brand-accent/20 border border-brand-accent/30 text-brand-accent text-[11px] font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all"
+                    >
+                      <Pill className="w-3.5 h-3.5" />
+                      <span>Full Medication Schedules →</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Emergency SOS override button */}
+                <div className="mt-auto">
+                  <button 
+                    className="w-full py-3 bg-brand-rose hover:bg-red-600 text-white font-mono font-bold text-xs tracking-wider rounded-xl shadow-lg shadow-rose-200/50 flex items-center justify-center gap-2 active:scale-95 transition-all"
+                    onClick={triggerEmergency}
+                  >
+                    <ShieldAlert className="w-4 h-4" />
+                    <span>EMERGENCY SOS TRIGGER</span>
+                  </button>
+                </div>
+              </aside>
+            </div>
+          )}
+
+          {/* TAB 3: HEALTH & SYMPTOMS ANALYTICS */}
+          {activeTab === 'analyze' && (
+            <HealthAnalytics 
+              userId={currentUserId} 
+              userSymptoms={userSymptoms} 
+            />
+          )}
+
+          {/* TAB 4: MEDICAL REPORT SCANNER */}
+          {activeTab === 'report' && (
+            <div className="flex-1 flex flex-col bg-white overflow-y-auto">
+              <header className="h-[70px] bg-brand-sand border-b border-brand-border flex justify-between items-center px-8 shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-brand-accent/10 flex items-center justify-center text-brand-accent">
+                    <ClipboardList className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-brand-textDark">Medical Report Scanner</h3>
+                    <p className="text-xs text-brand-textMuted">Automated PDF & lab scan biomarker parsing</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <label className="px-4 py-2 bg-brand-accent text-white font-bold text-xs rounded-xl shadow cursor-pointer hover:opacity-90 transition-all flex items-center gap-1.5">
+                    <UploadCloud className="w-4 h-4" />
+                    <span>Upload New Report</span>
+                    <input type="file" className="hidden" accept=".txt,.pdf,.jpg,.png" onChange={handleFileUpload} />
+                  </label>
+                </div>
+              </header>
+
+              <div className="p-8 flex flex-col gap-6 max-w-5xl mx-auto w-full">
+                {/* Upload Banner */}
+                <div className="border-2 border-dashed border-brand-border hover:border-brand-accent rounded-3xl p-8 bg-brand-sand/30 flex flex-col items-center justify-center text-center transition-all cursor-pointer">
+                  <div className="w-14 h-14 rounded-2xl bg-brand-accent/10 text-brand-accent flex items-center justify-center mb-3">
+                    <UploadCloud className="w-7 h-7" />
+                  </div>
+                  <h4 className="font-bold text-base text-brand-textDark">Drag & Drop your Lab Test or Blood Report PDF</h4>
+                  <p className="text-xs text-brand-textMuted mt-1 max-w-md">
+                    Supports Blood Count (CBC), Lipid Profile, Liver & Kidney Function Tests, Thyroid & Metabolic Panels.
+                  </p>
+                  <label className="mt-4 px-4 py-2 bg-white border border-brand-border hover:border-brand-accent text-brand-textDark font-bold text-xs rounded-xl shadow-sm cursor-pointer transition-all">
+                    Browse Files
+                    <input type="file" className="hidden" accept=".txt,.pdf,.jpg,.png" onChange={handleFileUpload} />
+                  </label>
+                </div>
+
+                {/* Parsed Biomarkers Table */}
+                <div className="bg-white border border-brand-border rounded-2xl p-6 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-brand-accent" />
+                      <h4 className="font-bold text-sm text-brand-textDark">Recent Metabolic Biomarker Findings</h4>
+                    </div>
+                    <span className="text-[11px] font-mono text-brand-textMuted">Sample Extraction</span>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs text-left">
+                      <thead>
+                        <tr className="border-b border-brand-border text-brand-textMuted font-mono uppercase text-[10px]">
+                          <th className="py-2.5 px-3">Test Parameter</th>
+                          <th className="py-2.5 px-3">Observed Value</th>
+                          <th className="py-2.5 px-3">Reference Range</th>
+                          <th className="py-2.5 px-3">Clinical Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-brand-border">
+                        <tr>
+                          <td className="py-3 px-3 font-semibold text-brand-textDark">Hemoglobin</td>
+                          <td className="py-3 px-3 font-mono font-bold text-brand-textDark">13.8 g/dL</td>
+                          <td className="py-3 px-3 text-brand-textMuted">12.0 - 16.0 g/dL</td>
+                          <td className="py-3 px-3">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
+                              <Check className="w-3 h-3" /> Normal
+                            </span>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="py-3 px-3 font-semibold text-brand-textDark">Total Cholesterol</td>
+                          <td className="py-3 px-3 font-mono font-bold text-brand-textDark">195 mg/dL</td>
+                          <td className="py-3 px-3 text-brand-textMuted">&lt; 200 mg/dL</td>
+                          <td className="py-3 px-3">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
+                              <Check className="w-3 h-3" /> Optimal
+                            </span>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="py-3 px-3 font-semibold text-brand-textDark">Fasting Blood Glucose</td>
+                          <td className="py-3 px-3 font-mono font-bold text-amber-700">118 mg/dL</td>
+                          <td className="py-3 px-3 text-brand-textMuted">70 - 99 mg/dL</td>
+                          <td className="py-3 px-3">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-bold">
+                              <AlertTriangle className="w-3 h-3" /> Borderline Elevated
+                            </span>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="py-3 px-3 font-semibold text-brand-textDark">Platelet Count</td>
+                          <td className="py-3 px-3 font-mono font-bold text-brand-textDark">260,000 /µL</td>
+                          <td className="py-3 px-3 text-brand-textMuted">150,000 - 450,000 /µL</td>
+                          <td className="py-3 px-3">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
+                              <Check className="w-3 h-3" /> Normal
+                            </span>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 5: MEDICINE REMINDERS */}
+          {activeTab === 'reminders' && (
+            <MedicineReminder userId={currentUserId} />
+          )}
+
+          {/* TAB 6: SETTINGS */}
+          {activeTab === 'settings' && (
+            <div className="flex-1 flex flex-col bg-white overflow-y-auto">
+              <header className="h-[70px] bg-brand-sand border-b border-brand-border flex justify-between items-center px-8 shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-brand-accent/10 flex items-center justify-center text-brand-accent">
+                    <Settings className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-brand-textDark">Settings & Preferences</h3>
+                    <p className="text-xs text-brand-textMuted">Manage your clinical profile, voice assistant, and alarms</p>
+                  </div>
+                </div>
+              </header>
+
+              <div className="p-8 flex flex-col gap-6 max-w-4xl mx-auto w-full">
+                {/* Profile settings card */}
+                <div className="bg-brand-sand/40 border border-brand-border rounded-2xl p-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <h4 className="font-bold text-sm text-brand-textDark">Personal Medical Profile</h4>
+                    <button 
+                      onClick={() => setProfileModalOpen(true)}
+                      className="text-xs font-bold text-brand-accent bg-brand-accent/10 hover:bg-brand-accent/20 px-3 py-1.5 rounded-lg transition-all"
+                    >
+                      Open Full Profile Modal
                     </button>
                   </div>
 
-                  {/* Detected Address pill */}
-                  <div className="flex items-center justify-between text-[10px] bg-slate-100/80 px-2.5 py-1 rounded-lg text-slate-600 font-mono">
-                    <span className="truncate flex items-center gap-1">
-                      <MapPin className="w-3 h-3 text-[#0f766e] shrink-0" />
-                      <strong className="text-slate-800 font-bold">{locationAddress || profile.city}</strong>
-                    </span>
-                    <span className="text-[9px] text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded font-bold shrink-0 ml-1">
-                      GPS ACTIVE
-                    </span>
-                  </div>
-
-                  {/* Category Filter Pills */}
-                  <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-                    {[
-                      { id: 'all', label: 'All Places', emoji: '🌟' },
-                      { id: 'hospital', label: 'Hospitals', emoji: '🏥' },
-                      { id: 'doctor', label: 'Doctors', emoji: '👨‍⚕️' },
-                      { id: 'lab', label: 'Labs', emoji: '🔬' },
-                      { id: 'pharmacy', label: 'Pharmacy', emoji: '💊' }
-                    ].map((cat) => (
-                      <button
-                        key={cat.id}
-                        onClick={() => handleCategoryFilterChange(cat.id)}
-                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap transition-all flex items-center gap-1 ${
-                          selectedPlaceCategory === cat.id
-                            ? 'bg-[#0f766e] text-white shadow-sm'
-                            : 'bg-white border border-brand-border text-slate-600 hover:bg-slate-50'
-                        }`}
-                      >
-                        <span>{cat.emoji}</span>
-                        <span>{cat.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* Interactive Leaflet Map container */}
-                <div className="h-56 border-b border-brand-border relative">
-                  <div ref={mapRef} className="w-full h-full bg-slate-100"></div>
-                  
-                  {/* Floating Map Hint */}
-                  <div className="absolute bottom-2 left-2 z-[400] bg-white/90 backdrop-blur-sm border border-slate-200 px-2 py-0.5 rounded text-[9px] font-mono text-slate-600 shadow-sm pointer-events-none">
-                    💡 Click card below to focus marker
-                  </div>
-                </div>
-                
-                {/* Real-time Places Listings */}
-                <div className="flex-1 flex flex-col p-4 overflow-y-auto gap-3">
-                  <div className="flex justify-between items-center select-none">
-                    <h4 className="text-[10px] font-mono tracking-wider text-slate-500 uppercase font-bold flex items-center gap-1">
-                      <span>Nearby Medical Places</span>
-                      <span className="bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded-full text-[9px] font-bold">
-                        {nearbyPlaces.length} Found
-                      </span>
-                    </h4>
-                    <span className="text-[9px] font-mono text-slate-400">
-                      Real-Time Radar
-                    </span>
-                  </div>
-                  
-                  {nearbyPlaces.length === 0 ? (
-                    <div className="bg-white border border-brand-border rounded-2xl p-6 text-center text-slate-400 text-xs">
-                      <RefreshCw className="w-5 h-5 mx-auto mb-2 animate-spin text-[#0f766e]" />
-                      Scanning radius for verified facilities...
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                    <div className="flex flex-col gap-1">
+                      <span className="font-bold text-brand-textDark uppercase text-[10px]">Patient Name</span>
+                      <input 
+                        type="text" 
+                        value={profile.name} 
+                        onChange={e => setProfile({ ...profile, name: e.target.value })}
+                        className="bg-white border border-brand-border rounded-xl p-2.5 outline-none focus:border-brand-accent text-xs" 
+                      />
                     </div>
-                  ) : (
-                    nearbyPlaces.map((place) => {
-                      let typeBadge = 'bg-teal-50 text-[#0f766e] border-teal-200';
-                      let typeLabel = 'HOSPITAL';
-                      let typeEmoji = '🏥';
-
-                      if (place.type === 'doctor') {
-                        typeBadge = 'bg-blue-50 text-blue-700 border-blue-200';
-                        typeLabel = 'DOCTOR / CLINIC';
-                        typeEmoji = '👨‍⚕️';
-                      } else if (place.type === 'lab') {
-                        typeBadge = 'bg-purple-50 text-purple-700 border-purple-200';
-                        typeLabel = 'DIAGNOSTIC LAB';
-                        typeEmoji = '🔬';
-                      } else if (place.type === 'pharmacy') {
-                        typeBadge = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-                        typeLabel = 'PHARMACY';
-                        typeEmoji = '💊';
-                      }
-
-                      return (
-                        <div 
-                          key={place.id} 
-                          onClick={() => handlePlaceCardClick(place)}
-                          className="bg-white border border-brand-border hover:border-[#0f766e]/40 rounded-2xl p-3.5 hover:shadow-md transition-all cursor-pointer flex flex-col gap-2 group relative"
-                        >
-                          {/* Card Top: Type & Distance */}
-                          <div className="flex items-center justify-between">
-                            <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded-md border ${typeBadge}`}>
-                              {typeEmoji} {typeLabel}
-                            </span>
-                            <div className="flex items-center gap-1 text-[10px] font-mono font-bold text-[#0f766e]">
-                              <Navigation className="w-3 h-3" />
-                              <span>{place.distanceKm}</span>
-                              <span className="text-slate-400 font-normal text-[9px]">({place.drivingTime})</span>
-                            </div>
-                          </div>
-
-                          {/* Place Name */}
-                          <div>
-                            <h5 className="font-bold text-xs text-slate-800 group-hover:text-[#0f766e] transition-colors leading-snug">
-                              {place.name}
-                            </h5>
-                            <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-1">
-                              {place.address}
-                            </p>
-                          </div>
-
-                          {/* Action Buttons: 1-Click Call & Map Directions */}
-                          <div className="flex items-center gap-2 pt-1 border-t border-slate-100" onClick={e => e.stopPropagation()}>
-                            {/* Direct Phone Call Button */}
-                            <a 
-                              href={`tel:${place.phone}`}
-                              className="flex-1 py-1.5 px-2 bg-slate-50 hover:bg-[#0f766e] text-slate-700 hover:text-white border border-slate-200 hover:border-[#0f766e] rounded-xl text-[10px] font-bold font-mono flex items-center justify-center gap-1 transition-all active:scale-95"
-                              title={`Direct Call ${place.phone}`}
-                            >
-                              <PhoneCall className="w-3 h-3 text-[#0f766e] group-hover:text-white" />
-                              <span className="truncate">{place.phone}</span>
-                            </a>
-
-                            {/* Turn-by-Turn Map Directions */}
-                            <a 
-                              href={place.directionsUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="py-1.5 px-3 bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white border border-blue-200 hover:border-blue-600 rounded-xl text-[10px] font-bold font-mono flex items-center gap-1 transition-all active:scale-95 shrink-0"
-                              title="Open Directions in Google Maps"
-                            >
-                              <Navigation2 className="w-3 h-3 text-blue-600 group-hover:text-white" />
-                              <span>Directions</span>
-                            </a>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
+                    <div className="flex flex-col gap-1">
+                      <span className="font-bold text-brand-textDark uppercase text-[10px]">City / Area</span>
+                      <input 
+                        type="text" 
+                        value={profile.city} 
+                        onChange={e => setProfile({ ...profile, city: e.target.value })}
+                        className="bg-white border border-brand-border rounded-xl p-2.5 outline-none focus:border-brand-accent text-xs" 
+                      />
+                    </div>
+                  </div>
                 </div>
-              </aside>
-            </>
+
+                {/* Voice & Speech synthesis settings */}
+                <div className="bg-brand-sand/40 border border-brand-border rounded-2xl p-6">
+                  <h4 className="font-bold text-sm text-brand-textDark mb-3">Voice & Audio Preferences</h4>
+                  <div className="flex items-center justify-between p-3 bg-white border border-brand-border rounded-xl">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-brand-accent/10 flex items-center justify-center text-brand-accent">
+                        <Volume2 className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-xs text-brand-textDark">Audio Speech Synthesis</p>
+                        <p className="text-[10px] text-brand-textMuted">Read diagnostic responses and answers aloud</p>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => setIsVoiceEnabled(!isVoiceEnabled)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${isVoiceEnabled ? 'bg-brand-accent text-white' : 'bg-slate-200 text-slate-600'}`}
+                    >
+                      {isVoiceEnabled ? 'Enabled' : 'Disabled'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Emergency Contact */}
+                <div className="bg-brand-sand/40 border border-brand-border rounded-2xl p-6">
+                  <h4 className="font-bold text-sm text-brand-textDark mb-3">Emergency SOS Hotline Config</h4>
+                  <div className="flex items-center justify-between p-3 bg-white border border-brand-border rounded-xl">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center text-red-600">
+                        <Phone className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-xs text-brand-textDark">Primary Emergency Hotline</p>
+                        <p className="text-[10px] text-brand-textMuted">Default National Emergency dispatch: 112 / 102</p>
+                      </div>
+                    </div>
+                    <span className="font-mono font-bold text-xs text-brand-rose bg-red-50 px-3 py-1 rounded-lg border border-red-200">
+                      112 / +91 99990-11122
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
         </section>
       </div>
@@ -1933,122 +1548,6 @@ export default function App() {
            MODALS OVERLAYS
            ========================================== */}
       
-      {/* Settings & Preferences Modal Overlay */}
-      {settingsModalOpen && (
-        <div className="fixed inset-0 bg-[#04060c]/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 transition-all duration-300">
-          <div className="bg-brand-sand border border-brand-border/40 rounded-3xl p-6 max-w-2xl w-full shadow-2xl relative flex flex-col gap-5 max-h-[90vh] overflow-y-auto">
-            <button className="absolute right-4 top-4 text-brand-textMuted hover:text-brand-textDark font-bold text-lg" onClick={() => setSettingsModalOpen(false)}>
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-[#0f766e]/10 border border-[#0f766e]/30 flex items-center justify-center text-[#0f766e] shrink-0">
-                <Settings className="w-5 h-5" />
-              </div>
-              <div className="text-left">
-                <h3 className="text-sm font-bold text-brand-textDark">Settings & Preferences</h3>
-                <p className="text-[10px] text-brand-textMuted">Manage your clinical profile, voice assistant, and alarms</p>
-              </div>
-            </div>
-
-            <hr className="border-brand-border" />
-
-            {/* Modal Body Settings Content */}
-            <div className="flex flex-col gap-6 select-none">
-              {/* Personal Medical Profile Box */}
-              <div className="bg-white border border-brand-border rounded-2xl p-5 flex flex-col gap-4 shadow-sm text-left">
-                <div className="flex justify-between items-center">
-                  <h4 className="text-xs font-bold text-brand-textDark">Personal Medical Profile</h4>
-                  <button 
-                    onClick={() => {
-                      setSettingsModalOpen(false);
-                      setProfileModalOpen(true);
-                    }}
-                    className="text-[10px] font-bold text-[#0f766e] bg-[#0f766e]/5 hover:bg-[#0f766e]/10 border border-[#0f766e]/15 px-3.5 py-1.5 rounded-xl transition-all"
-                  >
-                    Open Full Profile Modal
-                  </button>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[8px] font-bold text-brand-textMuted uppercase tracking-wider">Patient Name</label>
-                    <input 
-                      type="text" 
-                      value={profile.name} 
-                      onChange={e => setProfile({ ...profile, name: e.target.value })}
-                      className="border border-brand-border rounded-xl px-3 py-2 outline-none text-xs focus:border-brand-accent bg-brand-sand/30 font-medium text-brand-textDark"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[8px] font-bold text-brand-textMuted uppercase tracking-wider">City / Area</label>
-                    <input 
-                      type="text" 
-                      value={profile.city} 
-                      onChange={e => {
-                        const newCity = e.target.value;
-                        setProfile({ ...profile, city: newCity });
-                        if (typeof loadMapMarkers === 'function') loadMapMarkers(newCity);
-                      }}
-                      className="border border-brand-border rounded-xl px-3 py-2 outline-none text-xs focus:border-brand-accent bg-brand-sand/30 font-medium text-brand-textDark"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Voice & Audio Preferences Box */}
-              <div className="bg-white border border-brand-border rounded-2xl p-5 flex flex-col gap-3 shadow-sm text-left">
-                <h4 className="text-xs font-bold text-brand-textDark">Voice & Audio Preferences</h4>
-                <div className="border border-brand-border rounded-xl p-3 flex justify-between items-center bg-brand-sand/10">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-[#0f766e]/10 border border-[#0f766e]/15 flex items-center justify-center text-[#0f766e] shrink-0">
-                      <Volume2 className="w-4.5 h-4.5" />
-                    </div>
-                    <div>
-                      <span className="text-[11px] font-bold text-brand-textDark block mb-0.5">Audio Speech Synthesis</span>
-                      <span className="text-[9px] text-brand-textMuted block">Read diagnostic responses and answers aloud</span>
-                    </div>
-                  </div>
-                  <button 
-                    onClick={() => setIsVoiceEnabled(!isVoiceEnabled)}
-                    className={`text-[10px] font-bold px-4 py-1.5 rounded-lg shadow-sm transition-all active:scale-95 ${isVoiceEnabled ? 'bg-[#0f766e] text-white hover:bg-[#0d635c]' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}`}
-                  >
-                    {isVoiceEnabled ? 'Enabled' : 'Disabled'}
-                  </button>
-                </div>
-              </div>
-
-              {/* Emergency SOS Hotline Config Box */}
-              <div className="bg-white border border-brand-border rounded-2xl p-5 flex flex-col gap-3 shadow-sm text-left">
-                <h4 className="text-xs font-bold text-brand-textDark">Emergency SOS Hotline Config</h4>
-                <div className="border border-brand-border rounded-xl p-3 flex justify-between items-center bg-brand-sand/10">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-rose-100/80 border border-rose-200 flex items-center justify-center text-rose-600 shrink-0">
-                      <Phone className="w-4.5 h-4.5" />
-                    </div>
-                    <div>
-                      <span className="text-[11px] font-bold text-brand-textDark block mb-0.5">Primary Emergency Hotline</span>
-                      <span className="text-[9px] text-brand-textMuted block">Default National Emergency dispatch: 112 / 102</span>
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-mono font-bold text-rose-600 bg-rose-50 border border-rose-200/50 px-3 py-1.5 rounded-lg">
-                    112 / +91 99990-11122
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3 mt-2 border-t border-brand-border pt-4">
-              <button 
-                className="px-5 py-2 bg-white border border-brand-border hover:bg-brand-border/10 text-brand-textDark text-xs font-bold rounded-xl" 
-                onClick={() => setSettingsModalOpen(false)}
-              >
-                Close Settings
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Patient Medical Profile Modal */}
       {profileModalOpen && (
         <div className="fixed inset-0 bg-[#04060c]/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 transition-all duration-300">

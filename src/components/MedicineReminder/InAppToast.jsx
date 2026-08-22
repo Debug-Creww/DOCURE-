@@ -1,7 +1,7 @@
-// src/components/MedicineReminder/InAppToast.jsx
 import React, { useState, useEffect } from 'react';
 import { Bell, CheckCircle2, Clock, X, Volume2 } from 'lucide-react';
 import { subscribeToToasts } from '../../services/notificationScheduler';
+import { recordNotificationDoseTaken } from '../../services/healthAnalyticsService';
 
 export default function InAppToast() {
   const [toasts, setToasts] = useState([]);
@@ -12,6 +12,11 @@ export default function InAppToast() {
     });
     return unsubscribe;
   }, []);
+
+  const handleMarkTaken = (toast) => {
+    recordNotificationDoseTaken(toast.medicineName, toast.time);
+    dismissToast(toast.id);
+  };
 
   const dismissToast = (id) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -69,11 +74,11 @@ export default function InAppToast() {
 
           <div className="flex items-center gap-2 pt-1">
             <button
-              onClick={() => dismissToast(toast.id)}
+              onClick={() => handleMarkTaken(toast)}
               className="flex-1 py-2 bg-brand-accent hover:bg-teal-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-95"
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
-              Mark as Taken
+              Mark as Taken (On Time)
             </button>
             <button
               onClick={() => dismissToast(toast.id)}
