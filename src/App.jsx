@@ -872,7 +872,7 @@ export default function App() {
         {/* ==========================================
              PAGE 1: PREMIUM LANDING PAGE (Hero)
              ========================================== */}
-        <section className="w-full h-screen flex flex-col justify-between p-6 select-none relative z-10">
+        <section className="w-full h-screen flex flex-col justify-between p-6 select-none relative z-10 overflow-y-auto">
           {/* Navigation Header with Glassmorphism Bar */}
           <header className="flex justify-between items-center px-8 py-4 mx-auto my-3 w-full max-w-[94%] bg-[#0f766e]/5 backdrop-blur-md border border-[#0f766e]/15 rounded-2xl shadow-[0_4px_30px_rgba(0,0,0,0.03),_0_0_15px_rgba(15,118,110,0.05)] relative z-20">
             {/* Brand Logo and Name - slightly inset because of padding */}
@@ -912,11 +912,7 @@ export default function App() {
           {/* Hero Content */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center flex-1 max-w-7xl mx-auto w-full relative z-20">
             <div className="lg:col-span-7 flex flex-col gap-6 text-left">
-              <span className="inline-flex items-center gap-1.5 self-start text-[10px] font-mono font-bold px-3 py-1 bg-brand-glowingGreen/10 text-brand-glowingGreen border border-brand-glowingGreen/20 rounded-full">
-                <span className="w-1.5 h-1.5 bg-brand-glowingGreen rounded-full animate-ping"></span>
-                Now in public beta
-              </span>
-              
+
               <h1 className="font-serif text-[64px] leading-[1.08] text-brand-textDark font-extrabold tracking-tight">
                 Your symptoms,<br />
                 understood.<br />
@@ -934,7 +930,10 @@ export default function App() {
                 >
                   Start free triage
                 </button>
-                <button className="bg-brand-sand hover:bg-brand-border/10 text-brand-textDark border border-brand-border px-6 py-3.5 text-xs font-bold rounded-xl transition-all">
+                <button 
+                  className="bg-brand-sand hover:bg-brand-border/10 text-brand-textDark border border-brand-border px-6 py-3.5 text-xs font-bold rounded-xl transition-all"
+                  onClick={() => document.getElementById('about-section')?.scrollIntoView({ behavior: 'smooth' })}
+                >
                   See how it works
                 </button>
               </div>
@@ -1018,6 +1017,17 @@ export default function App() {
               <p className="text-[10px] text-brand-textMuted mt-1">Get immediate contact</p>
             </div>
           </div>
+
+          {/* ==========================================
+               ABOUT SECTION: Flashcard Carousel
+               ========================================== */}
+          <div id="about-section" className="relative z-20 py-16">
+            <div className="text-center mb-10">
+              <h2 className="font-serif text-4xl font-extrabold text-brand-textDark tracking-tight mb-3">How it works</h2>
+              <p className="text-sm text-brand-textMuted max-w-xl mx-auto leading-relaxed">Explore DOCURE's core features — from AI triage to verified specialist mapping.</p>
+            </div>
+            <AboutCarousel />
+          </div>
         </section>
 
         {/* ==========================================
@@ -1039,7 +1049,7 @@ export default function App() {
             <div className="flex flex-col w-full relative gap-2.5" id="sidebar-menu">
               <button 
                 className={`sidebar-item flex flex-col items-center justify-center py-3 text-[10px] w-[70px] mx-auto rounded-2xl relative transition-all duration-300 ${activeTab === 'home' ? 'bg-white text-[#0f766e] font-bold shadow-lg shadow-black/10' : 'text-white/70 hover:text-white hover:bg-white/5'}`}
-                onClick={() => setActiveTab('home')}
+                onClick={() => setActivePage('landing')}
               >
                 <Home className="w-5 h-5 mb-1" />
                 <span>Home</span>
