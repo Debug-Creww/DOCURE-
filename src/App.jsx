@@ -2,10 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   ArrowLeft, Activity, LineChart, BarChart3, ClipboardList, 
   Settings, UserCog, User, MapPin, X, Bot, Bell, 
-  Phone, Trash2, Send, Mic, Volume2, VolumeX, ShieldAlert,
-  Pill, Navigation, Compass, ExternalLink, RefreshCw,
-  LocateFixed, Building2, Stethoscope, TestTube2, PhoneCall,
-  Navigation2
+  Phone, Trash2, Send, Mic, Volume2, VolumeX, ShieldAlert, Menu,
+  Mail, ShieldCheck, Globe, Compass, Pill, Navigation, ExternalLink, RefreshCw,
+  LocateFixed, Building2, Stethoscope, TestTube2, PhoneCall, Navigation2
 } from 'lucide-react';
 import MedicineReminder from './components/MedicineReminder/MedicineReminder';
 import InAppToast from './components/MedicineReminder/InAppToast';
@@ -104,27 +103,422 @@ const MedicalKnowledge = {
   }
 };
 
+// Transparent WebM video player with auto-unmute and no button overlays
+const ChromaKeyVideo = ({ src }) => {
+  const videoRef = useRef(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    // Attempt to play unmuted on load
+    video.muted = false;
+    const playPromise = video.play();
+
+    if (playPromise !== undefined) {
+      playPromise.catch(() => {
+        // Autoplay with audio blocked: fallback to muted autoplay so she keeps moving
+        video.muted = true;
+        video.play().catch(() => {});
+      });
+    }
+
+    // Unmute on first user interaction anywhere on the document
+    const handleUserInteraction = () => {
+      if (videoRef.current) {
+        videoRef.current.muted = false;
+        videoRef.current.play().catch(() => {});
+      }
+      window.removeEventListener('click', handleUserInteraction);
+      window.removeEventListener('touchstart', handleUserInteraction);
+      window.removeEventListener('keydown', handleUserInteraction);
+    };
+
+    window.addEventListener('click', handleUserInteraction);
+    window.addEventListener('touchstart', handleUserInteraction);
+    window.addEventListener('keydown', handleUserInteraction);
+
+    return () => {
+      window.removeEventListener('click', handleUserInteraction);
+      window.removeEventListener('touchstart', handleUserInteraction);
+      window.removeEventListener('keydown', handleUserInteraction);
+    };
+  }, [src]);
+
+  return (
+    <div className="w-full h-full relative flex items-center justify-center overflow-visible">
+      <video
+        ref={videoRef}
+        src={src}
+        autoPlay
+        loop
+        playsInline
+        className="w-full h-full object-contain overflow-visible filter contrast-[1.02]"
+        style={{ mixBlendMode: 'multiply' }}
+      />
+    </div>
+  );
+};
+
+// Premium 3D Rotating About Flashcards Carousel
+const AboutCarousel = () => {
+  const [activeIndex, setActiveIndex] = React.useState(4); // Start centered at index 4 (5th card)
+  const [isHovered, setIsHovered] = React.useState(false);
+
+  React.useEffect(() => {
+    if (isHovered) return;
+    const interval = setInterval(() => {
+      setActiveIndex(prev => (prev === 9 ? 0 : prev + 1));
+    }, 1000); // Changes every 1 second
+    return () => clearInterval(interval);
+  }, [isHovered]);
+
+  const cards = [
+    {
+      id: "01",
+      title: "Clinically Calibrated",
+      tagline: "ALGORITHM",
+      desc: "Designed to bridge the gap between patient concerns and professional triage using logical symptoms pathing. The system processes inputs against structured clinical matrices to guide users toward the most appropriate care level.",
+      color: "from-teal-500/5 to-teal-500/15",
+      accent: "text-[#0f766e] border-[#0f766e]/10 bg-[#0f766e]/5"
+    },
+    {
+      id: "02",
+      title: "Secure Health Sandbox",
+      tagline: "PRIVACY",
+      desc: "Client-side encryption and locally stored records. We align with industry standards to keep data private. Patient information is compiled directly inside your local environment, ensuring that diagnostic insights remain entirely under your ownership.",
+      color: "from-emerald-500/5 to-emerald-500/15",
+      accent: "text-emerald-600 border-emerald-500/15 bg-emerald-500/5"
+    },
+    {
+      id: "03",
+      title: "Interactive Care Mascot",
+      tagline: "EXPERIENCE",
+      desc: "An intuitive clinical mascot that reacts dynamically to UI state. Voice guidance loops keep users engaged. By providing visual prompts and vocal indicators, the mascot simplifies navigation and reduces patient anxiety during triage.",
+      color: "from-indigo-500/5 to-indigo-500/15",
+      accent: "text-indigo-600 border-indigo-500/15 bg-indigo-500/5"
+    },
+    {
+      id: "04",
+      title: "Biomarker Scanning",
+      tagline: "COMPUTER VISION",
+      desc: "Instantly parse blood panels and clinical lab reports using computer vision to flag out-of-range indicators. The OCR system reads structured metrics and maps them to normal medical intervals to highlight anomalies safely.",
+      color: "from-rose-500/5 to-rose-500/15",
+      accent: "text-rose-600 border-rose-500/15 bg-rose-500/5"
+    },
+    {
+      id: "05",
+      title: "Verified Referrals",
+      tagline: "REFERRALS",
+      desc: "Direct integration with accredited city clinics and diagnostic lab networks. Find verified local specialists in Greater Noida with matching coordinates, enabling immediate scheduling and direct communication.",
+      color: "from-amber-500/5 to-amber-500/15",
+      accent: "text-amber-600 border-amber-500/15 bg-amber-500/5"
+    },
+    {
+      id: "06",
+      title: "Cognitive AI Engine",
+      tagline: "ANALYSIS",
+      desc: "Extract clinical symptoms severity, affected anatomical systems, and priority flags via advanced AI parsing. The cognitive parsing module flags critical concerns and helps categorize patient records for efficient triage.",
+      color: "from-violet-500/5 to-violet-500/15",
+      accent: "text-violet-600 border-violet-500/15 bg-violet-500/5"
+    },
+    {
+      id: "07",
+      title: "Emergency Desk SOS",
+      tagline: "SAFETY DESK",
+      desc: "Trigger emergency coordinates and broadcast patient info to emergency links on critical severity classification. The instant safety desk ensures family links and nearby care networks receive real-time notifications.",
+      color: "from-red-500/5 to-red-500/15",
+      accent: "text-red-600 border-red-500/15 bg-red-500/5"
+    },
+    {
+      id: "08",
+      title: "Interactive Mapping",
+      tagline: "FACILITIES MAP",
+      desc: "Geospatial search of verified health practitioners, clinics, and laboratories matching diagnostic coordinates. Visual markers display clinic status, working hours, and specialist credentials for easy local selection.",
+      color: "from-cyan-500/5 to-cyan-500/15",
+      accent: "text-cyan-600 border-cyan-500/15 bg-cyan-500/5"
+    },
+    {
+      id: "09",
+      title: "Local Records Vault",
+      tagline: "ENCRYPTION KEYS",
+      desc: "Secure storage sandbox for client history files, allowing user-authorized records downloads or wipes. Decryption keys are stored strictly client-side, giving you absolute authority over when your history is stored or erased.",
+      color: "from-sky-500/5 to-sky-500/15",
+      accent: "text-sky-600 border-sky-500/15 bg-sky-500/5"
+    },
+    {
+      id: "10",
+      title: "Diagnostic Trackers",
+      tagline: "RECORDS",
+      desc: "Keep history logs of all clinical triage outputs and test reports analysis for comprehensive health timelines. The records interface tracks trends in biomarkers, symptom occurrences, and clinic visits over time.",
+      color: "from-fuchsia-500/5 to-fuchsia-500/15",
+      accent: "text-fuchsia-600 border-fuchsia-500/15 bg-fuchsia-500/5"
+    }
+  ];
+
+  const handlePrev = () => {
+    setActiveIndex(prev => (prev === 0 ? cards.length - 1 : prev - 1));
+  };
+
+  const handleNext = () => {
+    setActiveIndex(prev => (prev === cards.length - 1 ? 0 : prev + 1));
+  };
+
+  return (
+    <div className="w-full flex flex-col items-center py-20 relative z-20 overflow-visible mt-8">
+      {/* Dynamic Background Spotlight */}
+      <div className="absolute inset-0 flex justify-center items-center pointer-events-none z-0">
+        <div className="w-[500px] h-[500px] rounded-full blur-[140px] transition-all duration-700 bg-emerald-500/5" />
+      </div>
+
+      {/* Title */}
+      <div className="text-center mb-16 relative z-10">
+        <span className="text-[10px] font-mono font-bold tracking-widest text-[#0f766e]/80 uppercase px-3 py-1 bg-[#0f766e]/5 border border-[#0f766e]/10 rounded-full">
+          Selected Pillars
+        </span>
+        <h2 className="font-serif text-4xl font-extrabold text-brand-textDark mt-3 tracking-tight">
+          Selected principles, <span className="text-brand-accent italic">framed in light</span>
+        </h2>
+      </div>
+
+      {/* 3D Perspective Card Slider Wrapper (Full width max-w-7xl, height adjusted to 300px) */}
+      <div 
+        className="relative w-full max-w-7xl h-[300px] flex items-center justify-center overflow-visible z-10 px-4"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        {cards.map((card, idx) => {
+          const diff = idx - activeIndex;
+          const isActive = idx === activeIndex;
+          
+          // Calculate 3D perspective translations with expanded spacing (320px separation)
+          const translateX = diff * 320; // Spaced further apart horizontally
+          const scale = 1 - Math.abs(diff) * 0.1; // scale step
+          const translateZ = -Math.abs(diff) * 100; // depth translation
+          const rotateY = diff * -15; // 3D Y-axis angle (subtle curved layout)
+          const opacity = 1 - Math.abs(diff) * 0.28; // keeps neighboring cards visible
+          
+          return (
+            <div
+              key={card.id}
+              onClick={() => setActiveIndex(idx)}
+              className="absolute w-[285px] h-[260px] rounded-[32px] p-6 flex flex-col justify-start gap-4 transition-all duration-700 ease-out cursor-pointer shadow-2xl select-none animate-card-glow"
+              style={{
+                background: `linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(244, 252, 251, 0.8) 100%)`,
+                border: isActive ? '2.5px solid #0f766e' : '1px solid rgba(15, 118, 110, 0.15)',
+                boxShadow: isActive 
+                  ? '0 20px 40px rgba(15, 118, 110, 0.15), 0 0 20px rgba(15, 118, 110, 0.08)'
+                  : '0 8px 24px rgba(0, 0, 0, 0.03)',
+                transform: `perspective(1000px) translateX(${translateX}px) translateZ(${translateZ}px) rotateY(${rotateY}deg) scale(${scale})`,
+                opacity: opacity >= 0 ? opacity : 0,
+                zIndex: 50 - Math.abs(diff),
+                backdropFilter: 'blur(20px)',
+                pointerEvents: Math.abs(diff) > 2 ? 'none' : 'auto'
+              }}
+            >
+              {/* Card Top Details */}
+              <div className="flex flex-col gap-2">
+                <div className="flex justify-between items-center">
+                  <span className={`text-[8px] font-mono font-bold tracking-widest px-2 py-0.5 border rounded-full uppercase ${card.accent}`}>
+                    {card.tagline}
+                  </span>
+                </div>
+                <h3 className="font-serif text-lg font-bold text-[#0f766e] mt-3 leading-snug">
+                  {card.title}
+                </h3>
+              </div>
+
+              {/* Card Bottom Description */}
+              <p className="text-[12px] text-slate-600 leading-relaxed font-sans">
+                {card.desc}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Carousel Navigation, Caption and Index Indicators */}
+      <div className="w-full max-w-xl flex items-center justify-between mt-12 z-20 px-6">
+        {/* Caption Info Left */}
+        <div className="text-left">
+          <span className="text-[9px] font-mono text-brand-textMuted tracking-wider uppercase block">Active Principle</span>
+          <span className="font-mono text-sm font-black text-[#0f766e] tracking-tight transition-all duration-300">
+            {cards[activeIndex].title}
+          </span>
+        </div>
+
+        {/* Indicators Dots and Arrows Right */}
+        <div className="flex items-center gap-6">
+          <div className="flex gap-1.5">
+            {cards.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => setActiveIndex(idx)}
+                className={`h-1.5 rounded-full transition-all duration-300 ${idx === activeIndex ? 'w-6 bg-[#0f766e]' : 'w-1.5 bg-[#0f766e]/20'}`}
+              />
+            ))}
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={handlePrev}
+              className="w-9 h-9 rounded-full bg-white border border-[#0f766e]/15 flex items-center justify-center text-[#0f766e] hover:bg-[#0f766e]/5 transition-all active:scale-95 shadow-sm text-sm"
+            >
+              ←
+            </button>
+            <button
+              onClick={handleNext}
+              className="w-9 h-9 rounded-full bg-white border border-[#0f766e]/15 flex items-center justify-center text-[#0f766e] hover:bg-[#0f766e]/5 transition-all active:scale-95 shadow-sm text-sm"
+            >
+              →
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Premium Landing Multi-column Footer
+const LandingFooter = ({ setActivePage, setActiveTab }) => {
+  return (
+    <footer className="w-full bg-gradient-to-b from-transparent to-[#0f766e]/[0.03] border-t border-[#0f766e]/15 py-20 px-10 relative z-20">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 text-left">
+        {/* Brand Column */}
+        <div className="flex flex-col gap-5">
+          <div className="flex items-center gap-3">
+            <img src="assets/logo_original.png?v=5" alt="DOCURE Logo" className="h-9 w-auto mix-blend-multiply hover:scale-105 transition-transform duration-300" />
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[22px] font-black tracking-[0.18em] text-[#0f766e]">DOCURE</span>
+              <span className="text-[8px] font-mono font-bold text-emerald-600 bg-emerald-50 border border-emerald-200/50 px-1.5 py-0.5 rounded-full uppercase leading-none">v2.0</span>
+            </div>
+          </div>
+          <p className="text-[11px] text-brand-textMuted leading-relaxed max-w-xs">
+            Advanced clinical intelligence interface built on locally encrypted sandboxes. Providing diagnostic triage clarity, biometric parsing, and specialized care routing.
+          </p>
+        </div>
+
+        {/* Column 2: Platform Links */}
+        <div>
+          <h4 className="font-mono text-xs font-extrabold text-[#0f766e] tracking-[0.15em] uppercase mb-5 relative after:content-[''] after:absolute after:-bottom-1.5 after:left-0 after:w-5 after:h-[1.5px] after:bg-[#0f766e]/30">Platform</h4>
+          <ul className="flex flex-col gap-3 text-[11px] text-brand-textMuted font-sans">
+            <li>
+              <button 
+                onClick={() => { setActivePage('dashboard'); setActiveTab('reduce'); }} 
+                className="flex items-center gap-2 hover:text-[#0f766e] hover:translate-x-1 transition-all duration-300 text-left group"
+              >
+                <span className="w-1 h-1 rounded-full bg-[#0f766e]/30 group-hover:bg-[#0f766e] transition-colors" />
+                <span>Symptom Chat (Triage Desk)</span>
+              </button>
+            </li>
+            <li>
+              <button 
+                onClick={() => { setActivePage('dashboard'); setActiveTab('maps'); }} 
+                className="flex items-center gap-2 hover:text-[#0f766e] hover:translate-x-1 transition-all duration-300 text-left group"
+              >
+                <span className="w-1 h-1 rounded-full bg-[#0f766e]/30 group-hover:bg-[#0f766e] transition-colors" />
+                <span>Clinic & Laboratory Directory</span>
+              </button>
+            </li>
+            <li>
+              <button 
+                onClick={() => { setActivePage('dashboard'); setActiveTab('report'); }} 
+                className="flex items-center gap-2 hover:text-[#0f766e] hover:translate-x-1 transition-all duration-300 text-left group"
+              >
+                <span className="w-1 h-1 rounded-full bg-[#0f766e]/30 group-hover:bg-[#0f766e] transition-colors" />
+                <span>Blood Panel Scanner</span>
+              </button>
+            </li>
+            <li>
+              <button 
+                onClick={() => { setActivePage('dashboard'); setActiveTab('settings'); }} 
+                className="flex items-center gap-2 hover:text-[#0f766e] hover:translate-x-1 transition-all duration-300 text-left group"
+              >
+                <span className="w-1 h-1 rounded-full bg-[#0f766e]/30 group-hover:bg-[#0f766e] transition-colors" />
+                <span>Patient Health Records</span>
+              </button>
+            </li>
+          </ul>
+        </div>
+
+        {/* Column 3: Contact & Support */}
+        <div>
+          <h4 className="font-mono text-xs font-extrabold text-[#0f766e] tracking-[0.15em] uppercase mb-5 relative after:content-[''] after:absolute after:-bottom-1.5 after:left-0 after:w-5 after:h-[1.5px] after:bg-[#0f766e]/30">Contact & Support</h4>
+          <ul className="flex flex-col gap-3 text-[11px] text-brand-textMuted font-sans">
+            <li className="flex items-start gap-2.5">
+              <Mail className="w-4 h-4 text-[#0f766e]/70 shrink-0 mt-0.5" />
+              <div>
+                <span className="text-brand-textDark font-semibold block text-[10px] uppercase tracking-wider">NCR Desk</span>
+                <span className="text-[#0f766e]/85 font-mono">contact@docure.in</span>
+              </div>
+            </li>
+            <li className="flex items-start gap-2.5">
+              <Phone className="w-4 h-4 text-[#0f766e]/70 shrink-0 mt-0.5" />
+              <div>
+                <span className="text-brand-textDark font-semibold block text-[10px] uppercase tracking-wider">Emergency SOS Desk</span>
+                <span className="text-rose-600 font-mono font-medium">112</span>
+              </div>
+            </li>
+            <li className="flex items-start gap-2.5">
+              <Globe className="w-4 h-4 text-[#0f766e]/70 shrink-0 mt-0.5" />
+              <a href="#" className="hover:text-[#0f766e] hover:translate-x-0.5 transition-all duration-300">Clinical Safety Protocols</a>
+            </li>
+          </ul>
+        </div>
+
+        {/* Column 4: Compliance Certificates */}
+        <div>
+          <h4 className="font-mono text-xs font-extrabold text-[#0f766e] tracking-[0.15em] uppercase mb-5 relative after:content-[''] after:absolute after:-bottom-1.5 after:left-0 after:w-5 after:h-[1.5px] after:bg-[#0f766e]/30">Compliance</h4>
+          <ul className="flex flex-col gap-2.5 text-[11px] text-brand-textMuted font-sans">
+            <li className="flex items-center gap-2 hover:text-[#0f766e] transition-colors cursor-default">
+              <ShieldCheck className="w-4 h-4 text-[#0f766e]/80 shrink-0" />
+              <span>HIPAA Aligned Sandbox</span>
+            </li>
+            <li className="flex items-center gap-2 hover:text-[#0f766e] transition-colors cursor-default">
+              <ShieldCheck className="w-4 h-4 text-[#0f766e]/80 shrink-0" />
+              <span>Client-Side Data Sanitization</span>
+            </li>
+            <li className="flex items-center gap-2 hover:text-[#0f766e] transition-colors cursor-default">
+              <ShieldCheck className="w-4 h-4 text-[#0f766e]/80 shrink-0" />
+              <span>ISO 27001 Security Standard</span>
+            </li>
+            <li className="flex items-center gap-2 hover:text-[#0f766e] transition-colors cursor-default">
+              <ShieldCheck className="w-4 h-4 text-[#0f766e]/80 shrink-0" />
+              <span>Verified Local Clinic Network</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      {/* Divider */}
+      <div className="max-w-7xl mx-auto h-[1px] bg-[#0f766e]/10 my-8" />
+
+      {/* Copyright row */}
+      <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] text-brand-textMuted font-mono">
+        <span>© 2026 DOCURE Health Technologies Inc. All rights reserved.</span>
+        <div className="flex gap-4">
+          <a href="#" className="hover:text-[#0f766e] hover:underline transition-all">Privacy Policy</a>
+          <span>•</span>
+          <a href="#" className="hover:text-[#0f766e] hover:underline transition-all">Terms of Use</a>
+          <span>•</span>
+          <a href="#" className="hover:text-[#0f766e] hover:underline transition-all">Security Standards</a>
+        </div>
+      </div>
+    </footer>
+  );
+};
+
 export default function App() {
   // Page routing
   const [activePage, setActivePage] = useState('landing');
   const [activeTab, setActiveTab] = useState('reduce');
-  const [currentUserId, setCurrentUserId] = useState(getDefaultUserId());
-  const [liveReminders, setLiveReminders] = useState([]);
-
-  // Initialize background notification scheduler & subscribe to live Firestore reminders
-  useEffect(() => {
-    const teardownScheduler = startNotificationScheduler([]);
-    const unsubscribeReminders = subscribeReminders(currentUserId, (data) => {
-      setLiveReminders(data);
-    });
-    return () => {
-      teardownScheduler();
-      unsubscribeReminders();
-    };
-  }, [currentUserId]);
+  Phone, Trash2, Send, Mic, Volume2, VolumeX, ShieldAlert, Menu,
+  Mail, ShieldCheck, Globe, Compass, Pill, Navigation, ExternalLink, RefreshCw,
+  LocateFixed, Building2, Stethoscope, TestTube2, PhoneCall, Navigation2
   
   // Profile settings state
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [profile, setProfile] = useState({
     name: "Anushka Pandey",
     age: 21,
@@ -168,6 +562,9 @@ export default function App() {
   const [selectedPlaceCategory, setSelectedPlaceCategory] = useState('all'); // 'all' | 'hospital' | 'doctor' | 'lab' | 'pharmacy'
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
   const [locationAddress, setLocationAddress] = useState('Greater Noida, UP');
+
+  // File upload indicator state
+  const [uploadingReport, setUploadingReport] = useState(false);
 
   // File upload indicator state
   const [uploadingReport, setUploadingReport] = useState(false);
@@ -295,9 +692,9 @@ export default function App() {
     return () => cancelAnimationFrame(frameId);
   }, [risk]);
 
-  // Plot real-time medical facility markers on Leaflet map
-  const plotPlacesOnMap = (places, userLocation = null) => {
-    if (!window.L || !mapInstanceRef.current || !markersGroupRef.current) return;
+  Phone, Trash2, Send, Mic, Volume2, VolumeX, ShieldAlert, Menu,
+  Mail, ShieldCheck, Globe, Compass, Pill, Navigation, ExternalLink, RefreshCw,
+  LocateFixed, Building2, Stethoscope, TestTube2, PhoneCall, Navigation2
     markersGroupRef.current.clearLayers();
     placesMarkersMapRef.current.clear();
 
@@ -860,19 +1257,18 @@ export default function App() {
         className="w-full h-[200vh] flex flex-col slide-transition z-10 relative"
         style={{ transform: activePage === 'dashboard' ? 'translateY(-100vh)' : 'translateY(0)' }}
       >
-        {/* ==========================================
-             PAGE 1: PREMIUM LANDING PAGE (Hero)
-             ========================================== */}
-        <section className="w-full h-screen flex flex-col justify-between p-6 select-none relative z-10">
+        {/* Scrollable Container wrapping Hero, About Carousel and Footer */}
+        <div className="w-full h-screen overflow-y-auto overflow-x-hidden relative scroll-smooth bg-transparent select-none z-10">
+          <section className="w-full min-h-screen flex flex-col justify-between pt-2 pb-4 px-6 relative z-10">
           {/* Navigation Header with Glassmorphism Bar */}
-          <header className="flex justify-between items-center px-8 py-4 mx-auto my-3 w-full max-w-[94%] bg-[#0f766e]/5 backdrop-blur-md border border-[#0f766e]/15 rounded-2xl shadow-[0_4px_30px_rgba(0,0,0,0.03),_0_0_15px_rgba(15,118,110,0.05)] relative z-20">
+          <header className="flex justify-between items-center px-8 py-3 mx-auto my-1.5 w-full max-w-[80%] bg-[#0f766e]/5 backdrop-blur-md border border-[#0f766e]/15 rounded-2xl shadow-[0_4px_30px_rgba(0,0,0,0.03),_0_0_15px_rgba(15,118,110,0.05)] relative z-20">
             {/* Brand Logo and Name - slightly inset because of padding */}
             <div 
-              className="flex items-center gap-3 cursor-pointer hover:opacity-90 active:scale-95 transition-all"
-              onClick={() => setActivePage('dashboard')}
+              className="flex items-center gap-3 cursor-pointer group active:scale-95 transition-all"
+              onClick={() => setActivePage('landing')}
             >
-              <img src="assets/logo_original.png?v=5" alt="DOCURE Logo" className="h-9 w-auto mix-blend-multiply" />
-              <h2 className="font-mono text-lg font-bold tracking-tight text-[#0f766e]">DOCURE</h2>
+              <img src="assets/logo_original.png?v=5" alt="DOCURE Logo" className="h-9 w-auto mix-blend-multiply transition-transform duration-300 group-hover:scale-105" />
+              <h2 className="font-mono text-[22px] font-black tracking-wider text-[#0f766e] group-hover:text-brand-accent transition-colors duration-300">DOCURE</h2>
             </div>
 
             {/* Right side buttons: Settings and Red Circular SOS/Alert */}
@@ -880,7 +1276,7 @@ export default function App() {
               {/* Settings button */}
               <button 
                 className="w-10 h-10 rounded-full bg-white/50 hover:bg-[#0f766e]/10 border border-[#0f766e]/10 flex items-center justify-center text-brand-accent transition-all active:scale-95 shadow-sm"
-                onClick={() => { setActivePage('dashboard'); setActiveTab('settings'); }}
+                onClick={() => setSettingsModalOpen(true)}
                 title="Settings"
               >
                 <Settings className="w-5 h-5" />
@@ -902,7 +1298,8 @@ export default function App() {
 
           {/* Hero Content */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center flex-1 max-w-7xl mx-auto w-full relative z-20">
-            <div className="lg:col-span-7 flex flex-col gap-6 text-left">
+            {/* Left Column: Text Details (Original Alignment - 6 cols) */}
+            <div className="lg:col-span-6 flex flex-col gap-4 text-left">
               <span className="inline-flex items-center gap-1.5 self-start text-[10px] font-mono font-bold px-3 py-1 bg-brand-glowingGreen/10 text-brand-glowingGreen border border-brand-glowingGreen/20 rounded-full">
                 <span className="w-1.5 h-1.5 bg-brand-glowingGreen rounded-full animate-ping"></span>
                 Now in public beta
@@ -931,89 +1328,87 @@ export default function App() {
               </div>
             </div>
 
-            {/* Right Side Mascot vector */}
-            <div className="lg:col-span-5 flex justify-center items-center h-full relative">
-              <div className="relative w-80 h-80 animate-bunny-float select-none">
-                <svg viewBox="0 0 200 220" fill="none" className="w-full h-full drop-shadow-xl" xmlns="http://www.w3.org/2000/svg">
-                  {/* Floating shadow below the bot */}
-                  <ellipse cx="100" cy="205" rx="30" ry="5" fill="rgba(15, 118, 110, 0.12)" className="pulse-active" />
-
-                  {/* Left Wiggling Ear */}
-                  <g className="animate-ear-left origin-[82px_60px]">
-                    <path d="M72 60 C63 25 73 5 80 5 C87 5 85 25 80 60" fill="#e6f4f2" stroke="#0f766e" strokeWidth="3.5" />
-                    <path d="M74 54 C68 28 75 14 78 14 C81 14 80 28 77 54" fill="#a7f3d0" />
-                  </g>
-
-                  {/* Right Wiggling Ear */}
-                  <g className="animate-ear-right origin-[118px_60px]">
-                    <path d="M128 60 C137 25 127 5 120 5 C113 5 115 25 120 60" fill="#e6f4f2" stroke="#0f766e" strokeWidth="3.5" />
-                    <path d="M126 54 C132 28 125 14 122 14 C119 14 120 28 123 54" fill="#a7f3d0" />
-                  </g>
-
-                  {/* Antenna */}
-                  <rect x="98" y="44" width="4" height="18" fill="#0f766e" />
-                  <circle cx="100" cy="40" r="5" fill="#10b981" className="animate-eye-glow" />
-
-                  {/* Hovering Robot Body */}
-                  <rect x="64" y="112" width="72" height="64" rx="20" fill="#e6f4f2" stroke="#0f766e" strokeWidth="3.5" />
-
-                  {/* Chest ECG Heart Screen */}
-                  <rect x="77" y="124" width="46" height="34" rx="8" fill="#0f172a" stroke="#0f766e" strokeWidth="1.8" />
-                  <path d="M81 141 H89 L92 131 L96 151 L100 138 L103 144 L106 141 H119" stroke="#10b981" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none" className="pulse-active" />
-
-                  {/* Dangling Stethoscope */}
-                  <path d="M72 106 C72 124 128 124 128 106" stroke="#0f766e" strokeWidth="3" fill="none" />
-                  <circle cx="100" cy="118" r="4.5" fill="#0f766e" />
-
-                  {/* Robot Head */}
-                  <rect x="68" y="58" width="64" height="54" rx="18" fill="#e6f4f2" stroke="#0f766e" strokeWidth="3.5" />
-
-                  {/* Digital Face Screen */}
-                  <rect x="75" y="65" width="50" height="40" rx="12" fill="#0f172a" />
-
-                  {/* Glowing Digital Eyes */}
-                  <circle cx="88" cy="82" r="5.5" fill="#10b981" className="animate-eye-glow" />
-                  <circle cx="112" cy="82" r="5.5" fill="#10b981" className="animate-eye-glow" />
-
-                  {/* Smiling Mouth */}
-                  <path d="M94 92 Q100 97 106 92" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" fill="none" />
-
-                  {/* Waving Robot Arms (Left & Right) */}
-                  <g className="animate-arm-left origin-[64px_128px]">
-                    <rect x="36" y="122" width="28" height="11" rx="5.5" fill="#e6f4f2" stroke="#0f766e" strokeWidth="3.5" />
-                  </g>
-                  <g className="animate-arm-right origin-[136px_128px]">
-                    <rect x="136" y="122" width="28" height="11" rx="5.5" fill="#e6f4f2" stroke="#0f766e" strokeWidth="3.5" />
-                  </g>
-                </svg>
+            {/* Right Column: Animated Bunny MVP Video (Expanded 6 cols, Large Frame) */}
+            <div className="lg:col-span-6 flex justify-center items-center h-full relative overflow-visible">
+              <div className="relative w-full max-w-[550px] aspect-[9/16] max-h-[66vh] animate-bunny-float select-none flex items-center justify-center overflow-visible">
+                {/* Floating shadow below the video */}
+                <div className="w-[220px] h-[12px] bg-[#0f766e]/12 rounded-full blur-[4px] absolute bottom-0 left-1/2 -translate-x-1/2 pulse-active" />
+                
+                <ChromaKeyVideo src="assets/bunny_mvp.webm?v=3" />
               </div>
             </div>
           </div>
 
-          {/* Footer blocks */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 relative z-20">
-            <div className="bg-white/40 border border-brand-border rounded-2xl p-4 text-left backdrop-blur-sm">
-              <span className="text-xs text-brand-textMuted">Symptom Chat</span>
-              <p className="text-[10px] text-brand-textMuted mt-1">Triage health issues</p>
+          {/* Footer blocks / Premium Interactive Shortcut Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 relative z-20 w-full max-w-7xl mx-auto mt-4 px-4">
+            {/* Card 1: Symptom Chat */}
+            <div 
+              className="bg-white/30 backdrop-blur-md border border-[#0f766e]/10 hover:border-[#0f766e]/30 rounded-3xl p-5 text-left flex items-start gap-4 transition-all duration-300 hover:-translate-y-1.5 hover:scale-[1.02] hover:shadow-[0_12px_40px_rgba(15,118,110,0.1)] cursor-pointer group"
+              onClick={() => { setActivePage('dashboard'); setActiveTab('reduce'); }}
+            >
+              <div className="w-12 h-12 rounded-2xl bg-[#0f766e]/10 border border-[#0f766e]/10 flex items-center justify-center text-brand-accent group-hover:bg-[#0f766e]/20 transition-all">
+                <Bot className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <span className="text-sm font-bold text-brand-textDark group-hover:text-brand-accent transition-all block mb-1">Symptom Chat</span>
+                <p className="text-[11px] text-brand-textMuted leading-relaxed">Describe symptoms to start automated triage with clinical guidance.</p>
+              </div>
             </div>
-            <div className="bg-white/40 border border-brand-border rounded-2xl p-4 text-left backdrop-blur-sm">
-              <span className="text-xs text-brand-textMuted">Medical Maps</span>
-              <p className="text-[10px] text-brand-textMuted mt-1">Clinics & labs search</p>
+
+            {/* Card 2: Medical Maps */}
+            <div 
+              className="bg-white/30 backdrop-blur-md border border-[#0f766e]/10 hover:border-[#0f766e]/30 rounded-3xl p-5 text-left flex items-start gap-4 transition-all duration-300 hover:-translate-y-1.5 hover:scale-[1.02] hover:shadow-[0_12px_40px_rgba(15,118,110,0.1)] cursor-pointer group"
+              onClick={() => { setActivePage('dashboard'); }}
+            >
+              <div className="w-12 h-12 rounded-2xl bg-[#0f766e]/10 border border-[#0f766e]/10 flex items-center justify-center text-brand-accent group-hover:bg-[#0f766e]/20 transition-all">
+                <MapPin className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <span className="text-sm font-bold text-brand-textDark group-hover:text-brand-accent transition-all block mb-1">Medical Maps</span>
+                <p className="text-[11px] text-brand-textMuted leading-relaxed">Locate verified specialists and diagnostic testing centers near you.</p>
+              </div>
             </div>
-            <div className="bg-white/40 border border-brand-border rounded-2xl p-4 text-left backdrop-blur-sm">
-              <span className="text-xs text-brand-textMuted">Report Scanner</span>
-              <p className="text-[10px] text-brand-textMuted mt-1">Summarize pdf scans</p>
+
+            {/* Card 3: Report Scanner */}
+            <div 
+              className="bg-white/30 backdrop-blur-md border border-[#0f766e]/10 hover:border-[#0f766e]/30 rounded-3xl p-5 text-left flex items-start gap-4 transition-all duration-300 hover:-translate-y-1.5 hover:scale-[1.02] hover:shadow-[0_12px_40px_rgba(15,118,110,0.1)] cursor-pointer group"
+              onClick={() => { setActivePage('dashboard'); setActiveTab('report'); }}
+            >
+              <div className="w-12 h-12 rounded-2xl bg-[#0f766e]/10 border border-[#0f766e]/10 flex items-center justify-center text-brand-accent group-hover:bg-[#0f766e]/20 transition-all">
+                <ClipboardList className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <span className="text-sm font-bold text-brand-textDark group-hover:text-brand-accent transition-all block mb-1">Report Scanner</span>
+                <p className="text-[11px] text-brand-textMuted leading-relaxed">Scan blood test reports to extract and check key biomarkers.</p>
+              </div>
             </div>
-            <div className="bg-white/40 border border-brand-border rounded-2xl p-4 text-left backdrop-blur-sm">
-              <span className="text-xs text-brand-textMuted">Emergency Desk</span>
-              <p className="text-[10px] text-brand-textMuted mt-1">Get immediate contact</p>
+
+            {/* Card 4: Emergency Desk */}
+            <div 
+              className="bg-white/30 backdrop-blur-md border border-[#f43f5e]/10 hover:border-[#f43f5e]/30 rounded-3xl p-5 text-left flex items-start gap-4 transition-all duration-300 hover:-translate-y-1.5 hover:scale-[1.02] hover:shadow-[0_12px_40px_rgba(244,63,94,0.12)] cursor-pointer group"
+              onClick={() => { setActivePage('dashboard'); triggerEmergency(); }}
+            >
+              <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/15 flex items-center justify-center text-rose-500 group-hover:bg-rose-500/20 transition-all">
+                <ShieldAlert className="w-6 h-6 animate-pulse" />
+              </div>
+              <div className="flex-1">
+                <span className="text-sm font-bold text-brand-textDark group-hover:text-rose-500 transition-all block mb-1">Emergency Desk</span>
+                <p className="text-[11px] text-brand-textMuted leading-relaxed">Trigger immediate SOS alerts and coordinates to family links.</p>
+              </div>
             </div>
           </div>
         </section>
 
-        {/* ==========================================
-             PAGE 2: CLINICAL TRIAGE DESK (Dashboard)
-             ========================================== */}
+        {/* About Section: 3D Flashcards Carousel */}
+        <AboutCarousel />
+
+        {/* Footer Section */}
+        <LandingFooter setActivePage={setActivePage} setActiveTab={setActiveTab} />
+      </div>
+
+      {/* ==========================================
+           PAGE 2: CLINICAL TRIAGE DESK (Dashboard)
+           ========================================== */}
         <section className="w-full h-screen flex border-t border-brand-border z-20 relative bg-brand-bg">
           {/* Sleek Glass Sidebar Menu Bar */}
           <div className="w-[85px] my-4 ml-4 rounded-[32px] bg-gradient-to-b from-[#0a6d5c]/95 to-[#043d33]/95 backdrop-blur-md shadow-2xl flex flex-col items-center py-6 gap-5 shrink-0 relative z-30 select-none border border-white/10">
@@ -1076,8 +1471,8 @@ export default function App() {
             {/* Bottom Actions */}
             <div className="flex flex-col w-full relative gap-2.5 mt-auto">
               <button 
-                className={`sidebar-item flex flex-col items-center justify-center py-3 text-[10px] w-[70px] mx-auto rounded-2xl relative transition-all duration-300 ${activeTab === 'settings' ? 'bg-white text-[#0f766e] font-bold shadow-lg' : 'text-white/70 hover:text-white hover:bg-white/5'}`}
-                onClick={() => setActiveTab('settings')}
+                className={`sidebar-item flex flex-col items-center justify-center py-3 text-[10px] w-[70px] mx-auto rounded-2xl relative transition-all duration-300 ${settingsModalOpen ? 'bg-white text-[#0f766e] font-bold shadow-lg' : 'text-white/70 hover:text-white hover:bg-white/5'}`}
+                onClick={() => setSettingsModalOpen(true)}
               >
                 <Settings className="w-5 h-5 mb-1" />
                 <span>Settings</span>
@@ -1463,66 +1858,9 @@ export default function App() {
                         typeEmoji = '💊';
                       }
 
-                      return (
-                        <div 
-                          key={place.id} 
-                          onClick={() => handlePlaceCardClick(place)}
-                          className="bg-white border border-brand-border hover:border-[#0f766e]/40 rounded-2xl p-3.5 hover:shadow-md transition-all cursor-pointer flex flex-col gap-2 group relative"
-                        >
-                          {/* Card Top: Type & Distance */}
-                          <div className="flex items-center justify-between">
-                            <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded-md border ${typeBadge}`}>
-                              {typeEmoji} {typeLabel}
-                            </span>
-                            <div className="flex items-center gap-1 text-[10px] font-mono font-bold text-[#0f766e]">
-                              <Navigation className="w-3 h-3" />
-                              <span>{place.distanceKm}</span>
-                              <span className="text-slate-400 font-normal text-[9px]">({place.drivingTime})</span>
-                            </div>
-                          </div>
-
-                          {/* Place Name */}
-                          <div>
-                            <h5 className="font-bold text-xs text-slate-800 group-hover:text-[#0f766e] transition-colors leading-snug">
-                              {place.name}
-                            </h5>
-                            <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-1">
-                              {place.address}
-                            </p>
-                          </div>
-
-                          {/* Action Buttons: 1-Click Call & Map Directions */}
-                          <div className="flex items-center gap-2 pt-1 border-t border-slate-100" onClick={e => e.stopPropagation()}>
-                            {/* Direct Phone Call Button */}
-                            <a 
-                              href={`tel:${place.phone}`}
-                              className="flex-1 py-1.5 px-2 bg-slate-50 hover:bg-[#0f766e] text-slate-700 hover:text-white border border-slate-200 hover:border-[#0f766e] rounded-xl text-[10px] font-bold font-mono flex items-center justify-center gap-1 transition-all active:scale-95"
-                              title={`Direct Call ${place.phone}`}
-                            >
-                              <PhoneCall className="w-3 h-3 text-[#0f766e] group-hover:text-white" />
-                              <span className="truncate">{place.phone}</span>
-                            </a>
-
-                            {/* Turn-by-Turn Map Directions */}
-                            <a 
-                              href={place.directionsUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="py-1.5 px-3 bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white border border-blue-200 hover:border-blue-600 rounded-xl text-[10px] font-bold font-mono flex items-center gap-1 transition-all active:scale-95 shrink-0"
-                              title="Open Directions in Google Maps"
-                            >
-                              <Navigation2 className="w-3 h-3 text-blue-600 group-hover:text-white" />
-                              <span>Directions</span>
-                            </a>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </aside>
-            </>
-          )}
+  Phone, Trash2, Send, Mic, Volume2, VolumeX, ShieldAlert, Menu,
+  Mail, ShieldCheck, Globe, Compass, Pill, Navigation, ExternalLink, RefreshCw,
+  LocateFixed, Building2, Stethoscope, TestTube2, PhoneCall, Navigation2
         </section>
       </div>
 
@@ -1530,6 +1868,122 @@ export default function App() {
            MODALS OVERLAYS
            ========================================== */}
       
+      {/* Settings & Preferences Modal Overlay */}
+      {settingsModalOpen && (
+        <div className="fixed inset-0 bg-[#04060c]/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 transition-all duration-300">
+          <div className="bg-brand-sand border border-brand-border/40 rounded-3xl p-6 max-w-2xl w-full shadow-2xl relative flex flex-col gap-5 max-h-[90vh] overflow-y-auto">
+            <button className="absolute right-4 top-4 text-brand-textMuted hover:text-brand-textDark font-bold text-lg" onClick={() => setSettingsModalOpen(false)}>
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-[#0f766e]/10 border border-[#0f766e]/30 flex items-center justify-center text-[#0f766e] shrink-0">
+                <Settings className="w-5 h-5" />
+              </div>
+              <div className="text-left">
+                <h3 className="text-sm font-bold text-brand-textDark">Settings & Preferences</h3>
+                <p className="text-[10px] text-brand-textMuted">Manage your clinical profile, voice assistant, and alarms</p>
+              </div>
+            </div>
+
+            <hr className="border-brand-border" />
+
+            {/* Modal Body Settings Content */}
+            <div className="flex flex-col gap-6 select-none">
+              {/* Personal Medical Profile Box */}
+              <div className="bg-white border border-brand-border rounded-2xl p-5 flex flex-col gap-4 shadow-sm text-left">
+                <div className="flex justify-between items-center">
+                  <h4 className="text-xs font-bold text-brand-textDark">Personal Medical Profile</h4>
+                  <button 
+                    onClick={() => {
+                      setSettingsModalOpen(false);
+                      setProfileModalOpen(true);
+                    }}
+                    className="text-[10px] font-bold text-[#0f766e] bg-[#0f766e]/5 hover:bg-[#0f766e]/10 border border-[#0f766e]/15 px-3.5 py-1.5 rounded-xl transition-all"
+                  >
+                    Open Full Profile Modal
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[8px] font-bold text-brand-textMuted uppercase tracking-wider">Patient Name</label>
+                    <input 
+                      type="text" 
+                      value={profile.name} 
+                      onChange={e => setProfile({ ...profile, name: e.target.value })}
+                      className="border border-brand-border rounded-xl px-3 py-2 outline-none text-xs focus:border-brand-accent bg-brand-sand/30 font-medium text-brand-textDark"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[8px] font-bold text-brand-textMuted uppercase tracking-wider">City / Area</label>
+                    <input 
+                      type="text" 
+                      value={profile.city} 
+                      onChange={e => {
+                        const newCity = e.target.value;
+                        setProfile({ ...profile, city: newCity });
+                        if (typeof loadMapMarkers === 'function') loadMapMarkers(newCity);
+                      }}
+                      className="border border-brand-border rounded-xl px-3 py-2 outline-none text-xs focus:border-brand-accent bg-brand-sand/30 font-medium text-brand-textDark"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Voice & Audio Preferences Box */}
+              <div className="bg-white border border-brand-border rounded-2xl p-5 flex flex-col gap-3 shadow-sm text-left">
+                <h4 className="text-xs font-bold text-brand-textDark">Voice & Audio Preferences</h4>
+                <div className="border border-brand-border rounded-xl p-3 flex justify-between items-center bg-brand-sand/10">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-[#0f766e]/10 border border-[#0f766e]/15 flex items-center justify-center text-[#0f766e] shrink-0">
+                      <Volume2 className="w-4.5 h-4.5" />
+                    </div>
+                    <div>
+                      <span className="text-[11px] font-bold text-brand-textDark block mb-0.5">Audio Speech Synthesis</span>
+                      <span className="text-[9px] text-brand-textMuted block">Read diagnostic responses and answers aloud</span>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => setIsVoiceEnabled(!isVoiceEnabled)}
+                    className={`text-[10px] font-bold px-4 py-1.5 rounded-lg shadow-sm transition-all active:scale-95 ${isVoiceEnabled ? 'bg-[#0f766e] text-white hover:bg-[#0d635c]' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}`}
+                  >
+                    {isVoiceEnabled ? 'Enabled' : 'Disabled'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Emergency SOS Hotline Config Box */}
+              <div className="bg-white border border-brand-border rounded-2xl p-5 flex flex-col gap-3 shadow-sm text-left">
+                <h4 className="text-xs font-bold text-brand-textDark">Emergency SOS Hotline Config</h4>
+                <div className="border border-brand-border rounded-xl p-3 flex justify-between items-center bg-brand-sand/10">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-rose-100/80 border border-rose-200 flex items-center justify-center text-rose-600 shrink-0">
+                      <Phone className="w-4.5 h-4.5" />
+                    </div>
+                    <div>
+                      <span className="text-[11px] font-bold text-brand-textDark block mb-0.5">Primary Emergency Hotline</span>
+                      <span className="text-[9px] text-brand-textMuted block">Default National Emergency dispatch: 112 / 102</span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-mono font-bold text-rose-600 bg-rose-50 border border-rose-200/50 px-3 py-1.5 rounded-lg">
+                    112 / +91 99990-11122
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-2 border-t border-brand-border pt-4">
+              <button 
+                className="px-5 py-2 bg-white border border-brand-border hover:bg-brand-border/10 text-brand-textDark text-xs font-bold rounded-xl" 
+                onClick={() => setSettingsModalOpen(false)}
+              >
+                Close Settings
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Patient Medical Profile Modal */}
       {profileModalOpen && (
         <div className="fixed inset-0 bg-[#04060c]/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 transition-all duration-300">

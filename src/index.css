@@ -141,3 +141,23 @@ body {
   25% { transform: translateX(-4px); }
   75% { transform: translateX(4px); }
 }
+
+/* Animated bunny slide-in from left transition */
+@keyframes slide-in-from-left {
+  0% {
+    transform: translateX(-150%) scale(0.85);
+    opacity: 0;
+  }
+  70% {
+    transform: translateX(8%) scale(1.03);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-slide-left {
+  animation: slide-in-from-left 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
