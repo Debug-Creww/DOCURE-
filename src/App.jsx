@@ -566,9 +566,6 @@ export default function App() {
   // File upload indicator state
   const [uploadingReport, setUploadingReport] = useState(false);
 
-  // File upload indicator state
-  const [uploadingReport, setUploadingReport] = useState(false);
-
   // Chat message engine state
   const [chat, setChat] = useState([
     {
