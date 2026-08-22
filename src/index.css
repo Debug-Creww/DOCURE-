@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 body {
-  background: radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.08) 0%, rgba(139, 92, 246, 0.02) 40%, #fbfbfa 80%) !important;
+  background: linear-gradient(135deg, #bae6c6 0%, #a0bda8 100%) !important;
 }
 
 /* Custom scrollbar */
