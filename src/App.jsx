@@ -512,9 +512,6 @@ export default function App() {
   // Page routing
   const [activePage, setActivePage] = useState('landing');
   const [activeTab, setActiveTab] = useState('reduce');
-  Phone, Trash2, Send, Mic, Volume2, VolumeX, ShieldAlert, Menu,
-  Mail, ShieldCheck, Globe, Compass, Pill, Navigation, ExternalLink, RefreshCw,
-  LocateFixed, Building2, Stethoscope, TestTube2, PhoneCall, Navigation2
   
   // Profile settings state
   const [profileModalOpen, setProfileModalOpen] = useState(false);
@@ -689,9 +686,9 @@ export default function App() {
     return () => cancelAnimationFrame(frameId);
   }, [risk]);
 
-  Phone, Trash2, Send, Mic, Volume2, VolumeX, ShieldAlert, Menu,
-  Mail, ShieldCheck, Globe, Compass, Pill, Navigation, ExternalLink, RefreshCw,
-  LocateFixed, Building2, Stethoscope, TestTube2, PhoneCall, Navigation2
+  // Plot color-coded markers for places on Leaflet Map
+  const plotPlacesOnMap = (places, userLocation = null) => {
+    if (!window.L || !mapInstanceRef.current || !markersGroupRef.current) return;
     markersGroupRef.current.clearLayers();
     placesMarkersMapRef.current.clear();
 
@@ -1855,9 +1852,66 @@ export default function App() {
                         typeEmoji = '💊';
                       }
 
-  Phone, Trash2, Send, Mic, Volume2, VolumeX, ShieldAlert, Menu,
-  Mail, ShieldCheck, Globe, Compass, Pill, Navigation, ExternalLink, RefreshCw,
-  LocateFixed, Building2, Stethoscope, TestTube2, PhoneCall, Navigation2
+                      return (
+                        <div 
+                          key={place.id} 
+                          onClick={() => handlePlaceCardClick(place)}
+                          className="bg-white border border-brand-border hover:border-[#0f766e]/40 rounded-2xl p-3.5 hover:shadow-md transition-all cursor-pointer flex flex-col gap-2 group relative"
+                        >
+                          {/* Card Top: Type & Distance */}
+                          <div className="flex items-center justify-between">
+                            <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded-md border ${typeBadge}`}>
+                              {typeEmoji} {typeLabel}
+                            </span>
+                            <div className="flex items-center gap-1 text-[10px] font-mono font-bold text-[#0f766e]">
+                              <Navigation className="w-3 h-3" />
+                              <span>{place.distanceKm}</span>
+                              <span className="text-slate-400 font-normal text-[9px]">({place.drivingTime})</span>
+                            </div>
+                          </div>
+
+                          {/* Place Name */}
+                          <div>
+                            <h5 className="font-bold text-xs text-slate-800 group-hover:text-[#0f766e] transition-colors leading-snug">
+                              {place.name}
+                            </h5>
+                            <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-1">
+                              {place.address}
+                            </p>
+                          </div>
+
+                          {/* Action Buttons: 1-Click Call & Map Directions */}
+                          <div className="flex items-center gap-2 pt-1 border-t border-slate-100" onClick={e => e.stopPropagation()}>
+                            {/* Direct Phone Call Button */}
+                            <a 
+                              href={`tel:${place.phone}`}
+                              className="flex-1 py-1.5 px-2 bg-slate-50 hover:bg-[#0f766e] text-slate-700 hover:text-white border border-slate-200 hover:border-[#0f766e] rounded-xl text-[10px] font-bold font-mono flex items-center justify-center gap-1 transition-all active:scale-95"
+                              title={`Direct Call ${place.phone}`}
+                            >
+                              <PhoneCall className="w-3 h-3 text-[#0f766e] group-hover:text-white" />
+                              <span className="truncate">{place.phone}</span>
+                            </a>
+
+                            {/* Turn-by-Turn Map Directions */}
+                            <a 
+                              href={place.directionsUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="py-1.5 px-3 bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white border border-blue-200 hover:border-blue-600 rounded-xl text-[10px] font-bold font-mono flex items-center gap-1 transition-all active:scale-95 shrink-0"
+                              title="Open Directions in Google Maps"
+                            >
+                              <Navigation2 className="w-3 h-3 text-blue-600 group-hover:text-white" />
+                              <span>Directions</span>
+                            </a>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </aside>
+            </>
+          )}
         </section>
       </div>
 
