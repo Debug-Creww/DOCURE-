@@ -134,6 +134,9 @@ export default function App() {
   const mapInstanceRef = useRef(null);
   const markersGroupRef = useRef(null);
 
+  // File upload indicator state
+  const [uploadingReport, setUploadingReport] = useState(false);
+
   // Chat message engine state
   const [chat, setChat] = useState([
     {
@@ -259,7 +262,7 @@ export default function App() {
 
   // Leaflet Maps loader
   const loadMapMarkers = (city) => {
-    if (!mapInstanceRef.current || !markersGroupRef.current) return;
+    if (!window.L || !mapInstanceRef.current || !markersGroupRef.current) return;
     
     const cleanCity = city.toLowerCase().trim();
     let coords = [28.6139, 77.2090]; // Delhi default
@@ -329,6 +332,7 @@ export default function App() {
   useEffect(() => {
     if (activePage === 'dashboard') {
       setTimeout(() => {
+        if (!window.L) return;
         if (mapRef.current && !mapInstanceRef.current) {
           try {
             const inst = window.L.map(mapRef.current, {

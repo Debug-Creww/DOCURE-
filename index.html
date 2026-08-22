@@ -4,6 +4,41 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DOCURE - AI Health Assistant</title>
+    <script>
+        window.onerror = function(message, source, lineno, colno, error) {
+            const div = document.createElement('div');
+            div.style.position = 'fixed';
+            div.style.top = '0';
+            div.style.left = '0';
+            div.style.width = '100%';
+            div.style.background = 'red';
+            div.style.color = 'white';
+            div.style.padding = '20px';
+            div.style.zIndex = '999999';
+            div.style.fontFamily = 'monospace';
+            div.style.fontSize = '14px';
+            div.style.whiteSpace = 'pre-wrap';
+            div.innerHTML = '<strong>Uncaught Error:</strong> ' + message + '<br>at ' + source + ':' + lineno + ':' + colno;
+            document.body.appendChild(div);
+            return false;
+        };
+        window.addEventListener('unhandledrejection', function(event) {
+            const div = document.createElement('div');
+            div.style.position = 'fixed';
+            div.style.top = '0';
+            div.style.left = '0';
+            div.style.width = '100%';
+            div.style.background = 'orange';
+            div.style.color = 'white';
+            div.style.padding = '20px';
+            div.style.zIndex = '999999';
+            div.style.fontFamily = 'monospace';
+            div.style.fontSize = '14px';
+            div.style.whiteSpace = 'pre-wrap';
+            div.innerHTML = '<strong>Unhandled Rejection:</strong> ' + event.reason;
+            document.body.appendChild(div);
+        });
+    </script>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
