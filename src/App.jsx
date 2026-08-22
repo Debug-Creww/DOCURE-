@@ -10,6 +10,7 @@ import {
 import MedicineReminder from './components/MedicineReminder/MedicineReminder';
 import InAppToast from './components/MedicineReminder/InAppToast';
 import MedicalRadarNode from './components/MedicalRadar/MedicalRadarNode';
+import LabReportAnalyzerNode from './components/LabReport/LabReportAnalyzerNode';
 import { startNotificationScheduler } from './services/notificationScheduler';
 import { getDefaultUserId } from './firebase';
 import { subscribeReminders, addReminder, deleteReminder } from './services/firestoreReminders';
@@ -1091,8 +1092,8 @@ export default function App() {
             </div>
           </div>
 
-          {/* Left Aside Diagnostic panel (Hidden on standalone Node views like Radar & Reminders) */}
-          {activeTab !== 'analyze' && activeTab !== 'reminders' && (
+          {/* Left Aside Diagnostic panel (Hidden on standalone Node views like Radar, Reminders & Report) */}
+          {activeTab !== 'analyze' && activeTab !== 'reminders' && activeTab !== 'report' && (
             <aside className="w-80 bg-brand-sand border-r border-brand-border flex flex-col p-5 gap-4 overflow-y-auto shrink-0 select-none">
               <div className="flex items-center gap-2">
                 <button 
@@ -1220,6 +1221,10 @@ export default function App() {
             <MedicalRadarNode 
               defaultCity={profile.city} 
               onOpenEmergency={triggerEmergency} 
+              onBackHome={() => setActivePage('landing')} 
+            />
+          ) : activeTab === 'report' ? (
+            <LabReportAnalyzerNode 
               onBackHome={() => setActivePage('landing')} 
             />
           ) : (
