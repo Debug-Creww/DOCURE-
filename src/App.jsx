@@ -754,7 +754,7 @@ export default function App() {
               <h1 className="font-serif text-[64px] leading-[1.08] text-brand-textDark font-extrabold tracking-tight">
                 Your symptoms,<br />
                 understood.<br />
-                Your care, connected.
+                <span className="text-brand-accent">Your care, connected.</span>
               </h1>
               
               <p className="text-sm text-brand-textMuted max-w-lg leading-relaxed font-sans">
@@ -777,52 +777,39 @@ export default function App() {
             {/* Right Side Mascot vector */}
             <div className="lg:col-span-5 flex justify-center items-center h-full relative">
               <div className="relative w-80 h-80 animate-bunny-float select-none">
-                <svg viewBox="0 0 200 240" fill="none" className="w-full h-full drop-shadow-xl" xmlns="http://www.w3.org/2000/svg">
-                  <defs>
-                    <linearGradient id="flameGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#f59e0b" stopOpacity="1" />
-                      <stop offset="50%" stopColor="#ef4444" stopOpacity="0.8" />
-                      <stop offset="100%" stopColor="#ef4444" stopOpacity="0" />
-                    </linearGradient>
-                  </defs>
+                <svg viewBox="0 0 200 220" fill="none" className="w-full h-full drop-shadow-xl" xmlns="http://www.w3.org/2000/svg">
+                  {/* Floating shadow below the bot */}
+                  <ellipse cx="100" cy="205" rx="30" ry="5" fill="rgba(15, 118, 110, 0.12)" className="pulse-active" />
 
                   {/* Left Wiggling Ear */}
                   <g className="animate-ear-left origin-[82px_60px]">
-                    <path d="M72 60 C63 25 73 5 80 5 C87 5 85 25 80 60" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="3" />
-                    <path d="M74 54 C68 28 75 14 78 14 C81 14 80 28 77 54" fill="#fda4af" />
+                    <path d="M72 60 C63 25 73 5 80 5 C87 5 85 25 80 60" fill="#e6f4f2" stroke="#0f766e" strokeWidth="3.5" />
+                    <path d="M74 54 C68 28 75 14 78 14 C81 14 80 28 77 54" fill="#a7f3d0" />
                   </g>
 
                   {/* Right Wiggling Ear */}
                   <g className="animate-ear-right origin-[118px_60px]">
-                    <path d="M128 60 C137 25 127 5 120 5 C113 5 115 25 120 60" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="3" />
-                    <path d="M126 54 C132 28 125 14 122 14 C119 14 120 28 123 54" fill="#fda4af" />
+                    <path d="M128 60 C137 25 127 5 120 5 C113 5 115 25 120 60" fill="#e6f4f2" stroke="#0f766e" strokeWidth="3.5" />
+                    <path d="M126 54 C132 28 125 14 122 14 C119 14 120 28 123 54" fill="#a7f3d0" />
                   </g>
 
                   {/* Antenna */}
-                  <rect x="98" y="44" width="4" height="18" fill="#94a3b8" />
+                  <rect x="98" y="44" width="4" height="18" fill="#0f766e" />
                   <circle cx="100" cy="40" r="5" fill="#10b981" className="animate-eye-glow" />
 
-                  {/* Thruster Engine Jet Flames */}
-                  <path d="M77 182 L83 218 L89 182 Z" fill="url(#flameGrad)" className="animate-flame origin-[83px_182px]" />
-                  <path d="M111 182 L117 218 L123 182 Z" fill="url(#flameGrad)" className="animate-flame origin-[117px_182px]" />
-
-                  {/* Thruster Feet (Left/Right) */}
-                  <rect x="75" y="172" width="16" height="12" rx="4" fill="#64748b" stroke="#475569" strokeWidth="2.5" />
-                  <rect x="109" y="172" width="16" height="12" rx="4" fill="#64748b" stroke="#475569" strokeWidth="2.5" />
-
                   {/* Hovering Robot Body */}
-                  <rect x="64" y="112" width="72" height="64" rx="20" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="4" />
+                  <rect x="64" y="112" width="72" height="64" rx="20" fill="#e6f4f2" stroke="#0f766e" strokeWidth="3.5" />
 
                   {/* Chest ECG Heart Screen */}
-                  <rect x="77" y="124" width="46" height="34" rx="8" fill="#0f172a" stroke="#475569" strokeWidth="2" />
-                  <path d="M81 141 H89 L92 131 L96 151 L100 138 L103 144 L106 141 H119" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" className="pulse-active" />
+                  <rect x="77" y="124" width="46" height="34" rx="8" fill="#0f172a" stroke="#0f766e" strokeWidth="1.8" />
+                  <path d="M81 141 H89 L92 131 L96 151 L100 138 L103 144 L106 141 H119" stroke="#10b981" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none" className="pulse-active" />
 
                   {/* Dangling Stethoscope */}
-                  <path d="M72 106 C72 124 128 124 128 106" stroke="#475569" strokeWidth="3" fill="none" />
-                  <circle cx="100" cy="118" r="4.5" fill="#94a3b8" />
+                  <path d="M72 106 C72 124 128 124 128 106" stroke="#0f766e" strokeWidth="3" fill="none" />
+                  <circle cx="100" cy="118" r="4.5" fill="#0f766e" />
 
                   {/* Robot Head */}
-                  <rect x="68" y="58" width="64" height="54" rx="18" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="4" />
+                  <rect x="68" y="58" width="64" height="54" rx="18" fill="#e6f4f2" stroke="#0f766e" strokeWidth="3.5" />
 
                   {/* Digital Face Screen */}
                   <rect x="75" y="65" width="50" height="40" rx="12" fill="#0f172a" />
@@ -836,10 +823,10 @@ export default function App() {
 
                   {/* Waving Robot Arms (Left & Right) */}
                   <g className="animate-arm-left origin-[64px_128px]">
-                    <rect x="36" y="122" width="28" height="11" rx="5.5" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="3" />
+                    <rect x="36" y="122" width="28" height="11" rx="5.5" fill="#e6f4f2" stroke="#0f766e" strokeWidth="3.5" />
                   </g>
                   <g className="animate-arm-right origin-[136px_128px]">
-                    <rect x="136" y="122" width="28" height="11" rx="5.5" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="3" />
+                    <rect x="136" y="122" width="28" height="11" rx="5.5" fill="#e6f4f2" stroke="#0f766e" strokeWidth="3.5" />
                   </g>
                 </svg>
               </div>
