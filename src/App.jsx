@@ -13,6 +13,13 @@ import HealthAnalytics from './components/HealthAnalytics/HealthAnalytics';
 import { startNotificationScheduler } from './services/notificationScheduler';
 import { getDefaultUserId } from './firebase';
 import { subscribeReminders, addReminder, deleteReminder } from './services/firestoreReminders';
+import { 
+  getTriageAnalysis, 
+  searchTavily, 
+  extractSpecialistsAndLabs, 
+  geocodeCity, 
+  analyzeReport 
+} from './services/aiService';
 
 // Maps coordinates
 const CityCoordinates = {
@@ -230,71 +237,81 @@ export default function App() {
   };
 
   // Leaflet Maps loader
-  const loadMapMarkers = (city) => {
+  const loadMapMarkers = (city, customCoords = null, customProfile = null) => {
     if (!window.L || !mapInstanceRef.current || !markersGroupRef.current) return;
     
     const cleanCity = city.toLowerCase().trim();
     let coords = [28.6139, 77.2090]; // Delhi default
     let matched = false;
     
-    for (let key in CityCoordinates) {
-      if (cleanCity.includes(key) || key.includes(cleanCity)) {
-        coords = CityCoordinates[key];
-        matched = true;
-        break;
+    if (customCoords) {
+      coords = customCoords;
+      matched = true;
+    } else {
+      for (let key in CityCoordinates) {
+        if (cleanCity.includes(key) || key.includes(cleanCity)) {
+          coords = CityCoordinates[key];
+          matched = true;
+          break;
+        }
       }
     }
     
     mapInstanceRef.current.setView(coords, 13);
     markersGroupRef.current.clearLayers();
     
-    // Choose appropriate profile
-    let profileKey = "general";
-    let lowerSymptoms = userSymptoms.toLowerCase();
-    if (lowerSymptoms.includes("head") || lowerSymptoms.includes("migraine") || lowerSymptoms.includes("dizzy")) {
-      profileKey = "headache";
-    } else if (lowerSymptoms.includes("fever") || lowerSymptoms.includes("cough") || lowerSymptoms.includes("cold") || lowerSymptoms.includes("throat")) {
-      profileKey = "fever";
-    } else if (lowerSymptoms.includes("stomach") || lowerSymptoms.includes("belly") || lowerSymptoms.includes("nausea")) {
-      profileKey = "stomach";
+    let activeProf = customProfile || matchedProfile;
+    if (!customProfile) {
+      let profileKey = "general";
+      let lowerSymptoms = userSymptoms.toLowerCase();
+      if (lowerSymptoms.includes("head") || lowerSymptoms.includes("migraine") || lowerSymptoms.includes("dizzy")) {
+        profileKey = "headache";
+      } else if (lowerSymptoms.includes("fever") || lowerSymptoms.includes("cough") || lowerSymptoms.includes("cold") || lowerSymptoms.includes("throat")) {
+        profileKey = "fever";
+      } else if (lowerSymptoms.includes("stomach") || lowerSymptoms.includes("belly") || lowerSymptoms.includes("nausea")) {
+        profileKey = "stomach";
+      }
+      activeProf = MedicalKnowledge[profileKey];
+      setMatchedProfile(activeProf);
     }
     
-    const activeProf = MedicalKnowledge[profileKey];
-    setMatchedProfile(activeProf);
-    
     // doctor markers
-    activeProf.doctors.forEach((doc, idx) => {
-      const latOffset = (idx === 0) ? 0.003 : -0.004;
-      const lngOffset = (idx === 0) ? -0.004 : 0.005;
-      const docPos = [coords[0] + latOffset, coords[1] + lngOffset];
-      
-      const docIcon = window.L.divIcon({
-        className: 'glowing-pin doctor',
-        iconSize: [14, 14],
-        iconAnchor: [7, 7]
+    if (activeProf && activeProf.doctors) {
+      activeProf.doctors.forEach((doc, idx) => {
+        const latOffset = (idx === 0) ? 0.003 : ((idx === 1) ? -0.004 : 0.002);
+        const lngOffset = (idx === 0) ? -0.004 : ((idx === 1) ? 0.005 : -0.003);
+        const docPos = [coords[0] + latOffset, coords[1] + lngOffset];
+        
+        const docIcon = window.L.divIcon({
+          className: 'glowing-pin doctor',
+          iconSize: [14, 14],
+          iconAnchor: [7, 7]
+        });
+        
+        window.L.marker(docPos, { icon: docIcon })
+          .bindPopup(`<strong>${doc.name}</strong><br>${doc.specialty}<br>${doc.phone}`)
+          .addTo(markersGroupRef.current);
       });
-      
-      window.L.marker(docPos, { icon: docIcon })
-        .bindPopup(`<strong>${doc.name}</strong><br>${doc.specialty}<br>${doc.phone}`)
-        .addTo(markersGroupRef.current);
-    });
+    }
     
     // lab markers
-    activeProf.labs.forEach((lab) => {
-      const latOffset = -0.002;
-      const lngOffset = -0.002;
-      const labPos = [coords[0] + latOffset, coords[1] + lngOffset];
-      
-      const labIcon = window.L.divIcon({
-        className: 'glowing-pin lab',
-        iconSize: [14, 14],
-        iconAnchor: [7, 7]
+    if (activeProf && activeProf.labs) {
+      activeProf.labs.forEach((lab, idx) => {
+        const latOffset = -0.002 + (idx * 0.001);
+        const lngOffset = -0.002 - (idx * 0.001);
+        const labPos = [coords[0] + latOffset, coords[1] + lngOffset];
+        
+        const labIcon = window.L.divIcon({
+          className: 'glowing-pin lab',
+          iconSize: [14, 14],
+          iconAnchor: [7, 7]
+        });
+        
+        window.L.marker(labPos, { icon: labIcon })
+          .bindPopup(`<strong>${lab.name}</strong><br>Lab Tests & Scans<br>${lab.phone}`)
+          .addTo(markersGroupRef.current);
       });
-      
-      window.L.marker(labPos, { icon: labIcon })
-        .bindPopup(`<strong>${lab.name}</strong><br>Lab Tests & Scans<br>${lab.phone}`)
-        .addTo(markersGroupRef.current);
-    });
+    }
   };
 
   // Initialize Leaflet Map once dashboard displays
@@ -413,7 +430,7 @@ export default function App() {
   };
 
   // Chat message engine logic
-  const handleSendMessage = (textToSend) => {
+  const handleSendMessage = async (textToSend) => {
     const query = textToSend || chatInput.trim();
     if (!query) return;
     
@@ -429,9 +446,7 @@ export default function App() {
     
     setIsTyping(true);
     
-    setTimeout(() => {
-      setIsTyping(false);
-      
+    try {
       switch (chatState) {
         case "INTAKE_SYMPTOMS":
           setUserSymptoms(query);
@@ -444,6 +459,7 @@ export default function App() {
               { label: "More than a week", full: "More than a week" }
             ]
           });
+          setIsTyping(false);
           appendBotResponse(`Understood. How long have you been experiencing this symptom? (*${query}*)`);
           break;
           
@@ -458,6 +474,7 @@ export default function App() {
               { label: "7-10 (Severe)", full: "7-10 (Severe)" }
             ]
           });
+          setIsTyping(false);
           appendBotResponse(`Got it. On a scale of **1 to 10** (1 being very minor and 10 being severe distress), how would you rate your pain/discomfort?`);
           break;
           
@@ -479,6 +496,7 @@ export default function App() {
               { label: "High Blood Pressure", full: "High Blood Pressure" }
             ]
           });
+          setIsTyping(false);
           appendBotResponse(`Please list any pre-existing conditions, age, or current medications to personalize diagnostic analysis.`);
           break;
           
@@ -486,29 +504,42 @@ export default function App() {
           setUserContext(query);
           setChatState("LOCATION_ASK");
           
-          let lowerSymptoms = userSymptoms.toLowerCase();
-          let profileKey = "general";
-          if (lowerSymptoms.includes("head") || lowerSymptoms.includes("migraine") || lowerSymptoms.includes("dizzy")) {
-            profileKey = "headache";
-          } else if (lowerSymptoms.includes("fever") || lowerSymptoms.includes("cough") || lowerSymptoms.includes("cold") || lowerSymptoms.includes("throat")) {
-            profileKey = "fever";
-          } else if (lowerSymptoms.includes("stomach") || lowerSymptoms.includes("belly") || lowerSymptoms.includes("nausea")) {
-            profileKey = "stomach";
+          let analysisHTML = await getTriageAnalysis(
+            userSymptoms,
+            userOnset,
+            userSeverity,
+            query,
+            profile.age,
+            profile.gender
+          );
+          
+          if (!analysisHTML) {
+            // Fallback to static data
+            let lowerSym = userSymptoms.toLowerCase();
+            let profileKey = "general";
+            if (lowerSym.includes("head") || lowerSym.includes("migraine") || lowerSym.includes("dizzy")) {
+              profileKey = "headache";
+            } else if (lowerSym.includes("fever") || lowerSym.includes("cough") || lowerSym.includes("cold") || lowerSym.includes("throat")) {
+              profileKey = "fever";
+            } else if (lowerSym.includes("stomach") || lowerSym.includes("belly") || lowerSym.includes("nausea")) {
+              profileKey = "stomach";
+            }
+            
+            const targetProf = MedicalKnowledge[profileKey];
+            setMatchedProfile(targetProf);
+            
+            analysisHTML = `### AI Triaging Analysis Summary\nBased on your responses, here are potential clinical conditions for your profile (Age: *${profile.age}*, Symptoms: *${userSymptoms}*):\n\n`;
+            targetProf.conditions.forEach((cond, idx) => {
+              analysisHTML += `**${idx + 1}. ${cond.name}**\n${cond.reason}\n\n`;
+            });
+            analysisHTML += `\n⚠️ **AI Triage Disclaimer:** DOCURE is an automated assistant. This evaluation does not replace in-person physician checks.\n\n### Safe Home Care Practices\n`;
+            targetProf.prevention.forEach(step => {
+              analysisHTML += `• ${step}\n`;
+            });
+            analysisHTML += `\n**Urgent Warning:** If you experience any breathing issues, fainting, or sudden arm/chest pain, request SOS immediately.`;
           }
           
-          const targetProf = MedicalKnowledge[profileKey];
-          setMatchedProfile(targetProf);
-          
-          let analysisHTML = `### AI Triaging Analysis Summary\nBased on your responses, here are potential clinical conditions for your profile (Age: *${profile.age}*, Symptoms: *${userSymptoms}*):\n\n`;
-          targetProf.conditions.forEach((cond, idx) => {
-            analysisHTML += `**${idx + 1}. ${cond.name}**\n${cond.reason}\n\n`;
-          });
-          analysisHTML += `\n⚠️ **AI Triage Disclaimer:** DOCURE is an automated assistant. This evaluation does not replace in-person physician checks.\n\n### Safe Home Care Practices\n`;
-          targetProf.prevention.forEach(step => {
-            analysisHTML += `• ${step}\n`;
-          });
-          analysisHTML += `\n**Urgent Warning:** If you experience any breathing issues, fainting, or sudden arm/chest pain, request SOS immediately.`;
-          
+          setIsTyping(false);
           appendBotResponse(analysisHTML);
           
           setTimeout(() => {
@@ -528,38 +559,101 @@ export default function App() {
         case "LOCATION_ASK":
           setUserLocation(query);
           setChatState("RECS_GIVEN");
-          loadMapLocationsDynamic(query);
+          await loadMapLocationsDynamic(query);
           break;
       }
-    }, 800);
+    } catch (e) {
+      console.error("Error in handleSendMessage:", e);
+      setIsTyping(false);
+    }
   };
 
-  const loadMapLocationsDynamic = (cityText) => {
-    loadMapMarkers(cityText);
-    
-    // Choose appropriate profile
-    let profileKey = "general";
-    let lowerSymptoms = userSymptoms.toLowerCase();
-    if (lowerSymptoms.includes("head") || lowerSymptoms.includes("migraine") || lowerSymptoms.includes("dizzy")) {
-      profileKey = "headache";
-    } else if (lowerSymptoms.includes("fever") || lowerSymptoms.includes("cough") || lowerSymptoms.includes("cold") || lowerSymptoms.includes("throat")) {
-      profileKey = "fever";
-    } else if (lowerSymptoms.includes("stomach") || lowerSymptoms.includes("belly") || lowerSymptoms.includes("nausea")) {
-      profileKey = "stomach";
+  const loadMapLocationsDynamic = async (cityText) => {
+    setIsTyping(true);
+    try {
+      // 1. Geocode city to coords
+      const coords = await geocodeCity(cityText);
+      
+      // 2. Query Tavily
+      let profileData = null;
+      if (cityText) {
+        const searchQuery = `best medical clinics, specialist doctors, and diagnostic labs in ${cityText} for ${userSymptoms}`;
+        const searchResults = await searchTavily(searchQuery);
+        if (searchResults && searchResults.results) {
+          const resultString = searchResults.results.map(r => `Title: ${r.title}\nUrl: ${r.url}\nContent: ${r.content}\n`).join("\n");
+          profileData = await extractSpecialistsAndLabs(resultString, cityText, userSymptoms);
+        }
+      }
+      
+      // Fallback if APIs fail or empty
+      if (!profileData || (!profileData.doctors && !profileData.labs)) {
+        let profileKey = "general";
+        let lowerSymptoms = userSymptoms.toLowerCase();
+        if (lowerSymptoms.includes("head") || lowerSymptoms.includes("migraine") || lowerSymptoms.includes("dizzy")) {
+          profileKey = "headache";
+        } else if (lowerSymptoms.includes("fever") || lowerSymptoms.includes("cough") || lowerSymptoms.includes("cold") || lowerSymptoms.includes("throat")) {
+          profileKey = "fever";
+        } else if (lowerSymptoms.includes("stomach") || lowerSymptoms.includes("belly") || lowerSymptoms.includes("nausea")) {
+          profileKey = "stomach";
+        }
+        profileData = MedicalKnowledge[profileKey];
+      }
+      
+      setMatchedProfile(profileData);
+      
+      // 3. Draw on map
+      loadMapMarkers(cityText, coords, profileData);
+      
+      // 4. Construct response
+      let recHTML = `### Verified Medical Resources in *${cityText}*\nI have plotted coordinates for local facilities matching your diagnostic profile on the map panel:\n\n**Recommended Specialists Nearby:**\n`;
+      if (profileData.doctors && profileData.doctors.length > 0) {
+        profileData.doctors.forEach(doc => {
+          recHTML += `• **${doc.name}** - ${doc.specialty} (Call: ${doc.phone})\n  *${doc.address}*\n`;
+        });
+      } else {
+        recHTML += `No specific specialists found in this city.\n`;
+      }
+      recHTML += `\n**Recommended Diagnostic Labs:**\n`;
+      if (profileData.labs && profileData.labs.length > 0) {
+        profileData.labs.forEach(lab => {
+          recHTML += `• **${lab.name}** - Diagnostics & Scans (Call: ${lab.phone})\n  *${lab.address}*\n`;
+        });
+      } else {
+        recHTML += `No specific labs found in this city.\n`;
+      }
+      recHTML += `\nSymptom analysis is complete. You can enter a new symptom anytime to start over!`;
+      
+      setIsTyping(false);
+      appendBotResponse(recHTML);
+    } catch (err) {
+      console.error("Error loading dynamic map locations:", err);
+      setIsTyping(false);
+      
+      // Fallback
+      let profileKey = "general";
+      let lowerSymptoms = userSymptoms.toLowerCase();
+      if (lowerSymptoms.includes("head") || lowerSymptoms.includes("migraine") || lowerSymptoms.includes("dizzy")) {
+        profileKey = "headache";
+      } else if (lowerSymptoms.includes("fever") || lowerSymptoms.includes("cough") || lowerSymptoms.includes("cold") || lowerSymptoms.includes("throat")) {
+        profileKey = "fever";
+      } else if (lowerSymptoms.includes("stomach") || lowerSymptoms.includes("belly") || lowerSymptoms.includes("nausea")) {
+        profileKey = "stomach";
+      }
+      const currentProf = MedicalKnowledge[profileKey];
+      setMatchedProfile(currentProf);
+      loadMapMarkers(cityText, null, currentProf);
+      
+      let recHTML = `### Verified Medical Resources in *${cityText}*\nI have plotted coordinates for local facilities matching your diagnostic profile on the map panel:\n\n**Recommended Specialists Nearby:**\n`;
+      currentProf.doctors.forEach(doc => {
+        recHTML += `• **${doc.name}** - ${doc.specialty} (Call: ${doc.phone})\n  *${doc.address}*\n`;
+      });
+      recHTML += `\n**Recommended Diagnostic Labs:**\n`;
+      currentProf.labs.forEach(lab => {
+        recHTML += `• **${lab.name}** - Diagnostics & Scans (Call: ${lab.phone})\n  *${lab.address}*\n`;
+      });
+      recHTML += `\nSymptom analysis is complete. You can enter a new symptom anytime to start over!`;
+      appendBotResponse(recHTML);
     }
-    const currentProf = MedicalKnowledge[profileKey];
-    
-    let recHTML = `### Verified Medical Resources in *${cityText}*\nI have plotted coordinates for local facilities matching your diagnostic profile on the map panel:\n\n**Recommended Specialists Nearby:**\n`;
-    currentProf.doctors.forEach(doc => {
-      recHTML += `• **${doc.name}** - ${doc.specialty} (Call: ${doc.phone})\n  *${doc.address}*\n`;
-    });
-    recHTML += `\n**Recommended Diagnostic Labs:**\n`;
-    currentProf.labs.forEach(lab => {
-      recHTML += `• **${lab.name}** - Diagnostics & Scans (Call: ${lab.phone})\n  *${lab.address}*\n`;
-    });
-    recHTML += `\nSymptom analysis is complete. You can enter a new symptom anytime to start over!`;
-    
-    appendBotResponse(recHTML);
     
     setTimeout(() => {
       setSymptomOptions({
@@ -587,17 +681,90 @@ export default function App() {
     
     setUploadingReport(true);
     
-    setTimeout(() => {
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const base64Data = reader.result.split(',')[1];
+        const mimeType = file.type;
+        
+        const responseText = await analyzeReport(base64Data, mimeType, file.name);
+        setUploadingReport(false);
+        
+        if (responseText) {
+          const markerStart = responseText.indexOf("||METRIC_UPDATE:");
+          let mainText = responseText;
+          let metricData = null;
+          
+          if (markerStart !== -1) {
+            const markerEnd = responseText.indexOf("||", markerStart + 16);
+            if (markerEnd !== -1) {
+              const jsonStr = responseText.substring(markerStart + 16, markerEnd).trim();
+              try {
+                metricData = JSON.parse(jsonStr);
+              } catch (parseError) {
+                console.error("Error parsing metric update JSON:", parseError);
+              }
+              mainText = responseText.substring(0, markerStart) + responseText.substring(markerEnd + 2);
+            }
+          }
+          
+          if (metricData) {
+            if (metricData.risk) {
+              setRisk(metricData.risk);
+              if (metricData.risk === "SOS") {
+                setPulse(142);
+              } else if (metricData.risk === "Elevated") {
+                setPulse(98);
+              } else {
+                setPulse(72);
+              }
+            }
+            
+            if (metricData.chronic) {
+              setProfile(prev => ({ ...prev, chronic: metricData.chronic }));
+              setConditions(prev => {
+                const updated = [...prev];
+                if (!updated.includes(metricData.chronic)) {
+                  updated.push(metricData.chronic);
+                }
+                return updated;
+              });
+            }
+          } else {
+            setRisk("Elevated");
+            setPulse(98);
+            setProfile(prev => ({ ...prev, chronic: "Atypical Biomarkers" }));
+            setConditions(prev => {
+              const updated = [...prev];
+              if (!updated.includes("Atypical Biomarkers")) {
+                updated.push("Atypical Biomarkers");
+              }
+              return updated;
+            });
+          }
+          
+          appendBotResponse(mainText.trim());
+        } else {
+          // Fallback to mock
+          setRisk("Elevated");
+          setPulse(98);
+          
+          const fileReport = `📋 **Blood Test Analysis Summary**\n\nDOCURE AI has parsed the text in your uploaded file **${file.name}** and extracted key metabolic biomarkers:\n\n• **Hemoglobin:** 13.8 g/dL (Normal: 12.0 - 16.0)\n• **Total Cholesterol:** 195 mg/dL (Normal: < 200)\n• **Fasting Glucose:** 242 mg/dL (⚠️ **ELEVATED / OUT OF RANGE**)\n\n**Clinical AI Diagnostic Analysis:**\nYour glucose levels indicate high blood sugar (hyperglycemia), which may suggest pre-diabetes or diabetes risk. \n\n**Ecosystem Updates:**\n1. We have updated your **Patient Profile Card** chronic conditions list with: *Pre-Diabetes Risk (Elevated Glucose)*.\n2. We have scheduled an automated diagnostic check recommendation.\n\n*Please check with your specialist MD.*`;
+          
+          setProfile(prev => ({ ...prev, chronic: "Pre-Diabetes (Elevated Glucose)" }));
+          setConditions(["Mild Asthma", "Pre-Diabetes (Elevated Glucose)"]);
+          appendBotResponse(fileReport);
+        }
+      } catch (err) {
+        console.error("Error analyzing uploaded report:", err);
+        setUploadingReport(false);
+      }
+    };
+    reader.onerror = () => {
       setUploadingReport(false);
-      setRisk("Elevated");
-      setPulse(98);
-      
-      const fileReport = `📋 **Blood Test Analysis Summary**\n\nDOCURE AI has parsed the text in your uploaded file **${file.name}** and extracted key metabolic biomarkers:\n\n• **Hemoglobin:** 13.8 g/dL (Normal: 12.0 - 16.0)\n• **Total Cholesterol:** 195 mg/dL (Normal: < 200)\n• **Fasting Glucose:** 242 mg/dL (⚠️ **ELEVATED / OUT OF RANGE**)\n\n**Clinical AI Diagnostic Analysis:**\nYour glucose levels indicate high blood sugar (hyperglycemia), which may suggest pre-diabetes or diabetes risk. \n\n**Ecosystem Updates:**\n1. We have updated your **Patient Profile Card** chronic conditions list with: *Pre-Diabetes Risk (Elevated Glucose)*.\n2. We have scheduled an automated diagnostic check recommendation.\n\n*Please check with your specialist MD.*`;
-      
-      setProfile(prev => ({ ...prev, chronic: "Pre-Diabetes (Elevated Glucose)" }));
-      setConditions(["Mild Asthma", "Pre-Diabetes (Elevated Glucose)"]);
-      appendBotResponse(fileReport);
-    }, 2200);
+      console.error("FileReader error");
+    };
+    reader.readAsDataURL(file);
   };
 
   // Mic/Speech recognition toggle

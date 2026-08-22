@@ -18,9 +18,13 @@ web_modules/
 # Output build directory
 dist/
 dist-ssr/
+# Environment variables
+.env
+.env.*
 *.local
 .env
 .env.*
+
 
 # Editor directories and files
 .vscode/*
